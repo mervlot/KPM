@@ -1,0 +1,9 @@
+{
+  "name": "",
+  "private": false,
+  "version": "",
+  "path": "",
+  "dependencies": {
+    "kotlinx.coroutines.*": "0"
+  }
+}
