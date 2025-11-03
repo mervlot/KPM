@@ -1,0 +1,14 @@
+*.kt
+*.jar
+*.war
+*.iml
+/out/
+/.idea/
+/build/
+/.gradle/
+/local.properties
+.DS_Store
+.gradle/
+logs/
+temp/
+*.log
