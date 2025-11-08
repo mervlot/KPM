@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	initialization "kpm/init"
+	"kpm/install"
 	"kpm/scanner"
 	"os"
 )
@@ -28,7 +29,7 @@ func main() {
 		fmt.Println("Scanning project for dependencies...")
 		scanner.Scanner("./")
 	case "i", "install", "get", "-g":
-		
+		install.Main()
 	default:
 		fmt.Printf("Unknown command: %s\n\n", args[1])
 		printHelp()

@@ -24,5 +24,5 @@ func Scanner(root string) {
 	}
 	ReadFile("package.kpm", Pkg)
 	data, err := json.MarshalIndent(Pkg, "", "  ")
-	libscanner.WriteToJson(data)
+	libscanner.WriteToJson(data, "package.kpm")
 }

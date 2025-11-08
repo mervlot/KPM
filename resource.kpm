@@ -1,6 +1,5 @@
 {
   "kpm version": "0.0.1",
-  "formatVersion": 1,
   "resources": [
     {
       "group": "org.jetbrains.kotlinx",

@@ -111,7 +111,7 @@ func Main() {
 	if err != nil {
 		log.Fatal("Failed to marshal package:", err)
 	}
-	err = libscanner.WriteToJson(data)
+	err = libscanner.WriteToJson(data, "package.kpm")
 	if err != nil {
 		log.Fatal(err)
 	}

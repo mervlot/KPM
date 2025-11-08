@@ -13,3 +13,8 @@ type Resource struct {
 	URL     *string `json:"url"`
 	Hash    string  `json:"hash"`
 }
+
+type ResourceFile struct {
+	Version   string          `json:"kpm version"`
+	Resources []Resource `json:"resources"`
+}

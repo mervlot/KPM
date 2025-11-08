@@ -6,8 +6,8 @@ import (
 )
 
 // WriteToJson writes the given data to package.kpm
-func WriteToJson(data []byte) error {
-	err := os.WriteFile("package.kpm", data, 0644)
+func WriteToJson(data []byte, file string) error {
+	err := os.WriteFile(file, data, 0644)
 	if err != nil {
 		return fmt.Errorf("error writing package.kpm: %w", err)
 	}
