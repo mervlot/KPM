@@ -1,8 +1,9 @@
 {
-  "name": "",
-  "private": false,
-  "version": "",
-  "path": "",
+  "name": "KPM",
+  "private": true,
+  "version": "0.0.0",
+  "path": "/home/mervlot/mervlot/KPM",
+  "mainDir": "./src",
   "dependencies": {
     "kotlinx.coroutines.*": "0"
   }

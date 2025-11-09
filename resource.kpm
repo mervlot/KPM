@@ -1,31 +1,41 @@
 {
-  "kpm version": "0.0.1",
+  "kpm version": "1.0.0",
   "resources": [
     {
       "group": "org.jetbrains.kotlinx",
       "name": "kotlinx-coroutines-core",
-      "version": "1.7.3",
+      "version": "1.10.2",
       "source": "maven",
       "type": "jar",
       "domain": "https://repo1.maven.org/maven2/",
-      "path": "org/jetbrains/kotlinx/kotlinx-coroutines-core/1.7.3/kotlinx-coroutines-core-1.7.3.jar",
-      "lpath": "./libs/kotlinx-coroutines-core-1.7.3.jar",
-      "gpath": "~/.kpm/repo/org/jetbrains/kotlinx/kotlinx-coroutines-core/1.7.3/kotlinx-coroutines-core-1.7.3.jar",
-      "url": null,
+      "path": "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core/1.10.2/kotlinx-coroutines-core-1.10.2.jar",
+      "lpath": "org.jetbrains.kotlinx/kotlinx-coroutines-core/1.10.2/kotlinx-coroutines-core-1.10.2.jar",
+      "gpath": "/home/mervlot/mervlot/KPM/libs/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.10.2/kotlinx-coroutines-core-1.10.2.jar",
       "hash": "sha256:82af21f1c0e8ce74c5c..."
     },
     {
-      "group": null,
-      "name": "mycustom",
-      "version": null,
-      "source": "url",
+      "group": "org.apache.commons",
+      "name": "commons-lang3",
+      "version": "3.13.0",
+      "source": "maven",
       "type": "jar",
-      "domain": null,
-      "path": "libs/mycustom.jar",
-      "lpath": "./libs/mycustom.jar",
-      "gpath": "~/.kpm/repo/url/mycustom.jar",
-      "url": "https://example.com/libs/mycustom.jar",
-      "hash": "sha256:0f1cd9e8b07c371ee4e..."
+      "domain": "https://repo1.maven.org/maven2/",
+      "path": "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar",
+      "lpath": "org.apache.commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar",
+      "gpath": "~/.kpm/repo/org.apache.commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar",
+      "hash": "sha256:82af21f1c0e8ce74c5..."
+    },
+    {
+      "group": "com.google.guava",
+      "name": "guava",
+      "version": "32.1.2-jre",
+      "source": "maven",
+      "type": "jar",
+      "domain": "https://repo1.maven.org/maven2/",
+      "path": "https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
+      "lpath": "com.google.guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
+      "gpath": "/home/mervlot/mervlot/KPM/libs/com.google.guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
+      "hash": "sha256:82af21f1c0e8ce74c5c..."
     }
   ]
 }

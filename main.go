@@ -17,7 +17,7 @@ func main() {
 		printHelp()
 		return
 	}
-
+	// ram.Main()
 	switch args[1] {
 	case "init", "-i", "--init":
 		initialization.Main()
@@ -29,7 +29,20 @@ func main() {
 		fmt.Println("Scanning project for dependencies...")
 		scanner.Scanner("./")
 	case "i", "install", "get", "-g":
-		install.Main()
+		if len(args) > 2 {
+			// Pass all arguments after the command (args[2:] is a slice)
+			install.Main(false, args[2:]...)
+		} else {
+			install.Main(false)
+		}
+	case "update":
+		if len(args) > 2 {
+			// Pass all arguments after the command (args[2:] is a slice)
+			install.Main(true, args[2:]...)
+		} else {
+			install.Main(true)
+		}
+
 	default:
 		fmt.Printf("Unknown command: %s\n\n", args[1])
 		printHelp()
