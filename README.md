@@ -1,7 +1,7 @@
 # KPM - Kotlin Package Manager
 
 <div align="center">
-  <img src="assets/logo.png" alt="KPM Logo" width="200" height="200">
+  <img src="assets/images/kpm.png" alt="KPM Logo" width="200" height="200">
 </div>
 
 KPM is a package manager designed for Kotlin projects, providing dependency management, package installation, and project lifecycle management similar to npm for Node.js or Cargo for Rust.
