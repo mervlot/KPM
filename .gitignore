@@ -10,6 +10,7 @@
 /bin/
 /dist/
 src/
+libs/
 *.kt
 # Build output
 *.o
@@ -40,5 +41,3 @@ temp/
 
 # Dependencies
 go.sum
-
-libs/
