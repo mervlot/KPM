@@ -40,3 +40,5 @@ temp/
 
 # Dependencies
 go.sum
+
+libs/
