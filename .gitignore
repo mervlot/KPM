@@ -9,7 +9,8 @@
 *.out
 /bin/
 /dist/
-
+src/
+*.kt
 # Build output
 *.o
 *.a
