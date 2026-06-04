@@ -1,0 +1,41 @@
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.so.*
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
+
+# Build output
+*.o
+*.a
+*.so
+/kpm
+/kpm.exe
+
+# IDE and Editor
+/.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Vendor
+/vendor/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+logs/
+temp/
+*.log
+
+# Dependencies
+go.sum

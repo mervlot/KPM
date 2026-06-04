@@ -1,0 +1,14 @@
+{
+  "name": "KPM",
+  "private": false,
+  "version": "0.0.0",
+  "path": "/home/mervlot/mervlot/KPM",
+  "mainDir": "./src",
+  "dependencies": {
+    "kotlinx": "0"
+  },
+  "scripts":{
+    "dev":"node -v",
+    "run":"python --version"
+  }
+}
