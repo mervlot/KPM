@@ -343,23 +343,39 @@ Key Go dependencies:
 
 ## 📝 License
 
-This project is proprietary software licensed under the **Mervlot Proprietary Evaluation License (MPEL) v1.0**.
+This project is **source-available** software licensed under a proprietary license.
 
-Copyright (c) 2025 Mervlot (Ogunmuyiwa Muhammad). All rights reserved.
+Copyright (c) 2025 Mervlot (Ogunmuyiwa Muhammad Mubarak Oluwaseyi). All rights reserved.
 
-The software is proprietary and confidential. Usage is permitted solely for internal evaluation, testing, and development with explicit written permission from Mervlot.
+**Permitted Uses:**
+- Personal, educational, internal, and evaluation purposes
+- Modify the software for private use
+- Submit modifications back to the original repository
+- Redistribute the original, unmodified software with this license intact
+
+**Prohibited:**
+- Distribute or share modified versions
+- Create public forks for distribution
+- Offer modified versions as a competing product or service
+- Remove proprietary notices or attribution
+
+For permissions, licensing, or partnership inquiries: **mervlot@outlook.com**
 
 See [LICENCE.md](LICENCE.md) for full license terms.
 
 ## 👤 Author
 
-**Mervlot (Ogunmuyiwa Muhammad)**
+**Mervlot (Ogunmuyiwa Muhammad Mubarak Oluwaseyi)**
 
 ---
 
 ## 🤝 Contributing
 
-This is a proprietary project. Contributions require explicit permission from the copyright holder.
+Contributions are welcome! By submitting modifications, you agree that:
+- Mervlot has the right to review, accept, modify, or reject your changes
+- Accepted contributions may be incorporated under the same source-available license
+
+For details, see [LICENCE.md](LICENCE.md).
 
 ## ⚠️ Status
 
