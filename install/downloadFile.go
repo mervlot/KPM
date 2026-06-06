@@ -13,16 +13,8 @@ import (
 func DownloadJar(path string, outFile string, global bool) error {
 	fmt.Println("Downloading:", path)
 
-	// Handle global path
-	if global {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to determine user home: %w", err)
-		}
-		if err := os.MkdirAll(filepath.Join(home, ".kpm", "libs"), os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create global libs folder: %w", err)
-		}
-	}
+	// Note: All downloads go to project-local ./libs/ directory for portability.
+	// The 'global' parameter is deprecated and ignored.
 
 	// Use Sonatype API client to download bytes
 	client := api.NewClient()

@@ -22,6 +22,7 @@ type Metadata struct {
 
 // BuildPath generates the repository path for the given package format (e.g., "jar", "pom")
 func (m Mavenurl) BuildPath(pkgFormat string) string {
+	fmt.Println(m.BuildPath(pkgFormat))
 	return api.BuildArtifactPath(m.Group, m.Artifact, m.Version, pkgFormat)
 }
 
@@ -40,4 +41,15 @@ type Versioning struct {
 func (m Mavenurl) MetadataUrl() string {
 	groupPath := strings.ReplaceAll(m.Group, ".", "/")
 	return fmt.Sprintf("https://repo1.maven.org/maven2/%s/%s/maven-metadata.xml", groupPath, m.Artifact)
+}
+func (m Mavenurl) PomUrl() string {
+	groupPath := strings.ReplaceAll(m.Group, ".", "/")
+	return fmt.Sprintf(
+		"https://repo1.maven.org/maven2/%s/%s/%s/%s-%s.pom",
+		groupPath,
+		m.Artifact,
+		m.Version,
+		m.Artifact,
+		m.Version,
+	)
 }
