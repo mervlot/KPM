@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/xml"
 	"fmt"
+	"kpm/env"
 	"strings"
 
 	"github.com/scagogogo/sonatype-central-sdk/pkg/api"
@@ -30,7 +31,24 @@ func (m Mavenurl) BuildPath(pkgFormat string) string {
 func (m Mavenurl) BuildLatestPath(version, pkgFormat string) string {
 	return api.BuildArtifactPath(m.Group, m.Artifact, version, pkgFormat)
 }
-
+func (m Mavenurl) GlobalPath(version, pkgFormat string) string {
+	if env.DetectOS() == "windows"{
+	return fmt.Sprintf("%s\\",env.Env.Windows)
+	}else if env.DetectOS()== "linux"{
+			return fmt.Sprintf("%s/",env.Env.Linux)
+	}else if env.DetectOS()== "darwin"{
+			return fmt.Sprintf("%s/", env.Env.Darwin)
+	}
+	
+	return ""
+}
+func (m Mavenurl) LocalPath(version, pkgFormat string) string {
+	if env.DetectOS() == "windows"{
+	return ".\\libs\\"
+	}else {return "./libs/"
+	}
+	
+}
 type Versioning struct {
 	Latest      string   `xml:"latest"`
 	Release     string   `xml:"release"`

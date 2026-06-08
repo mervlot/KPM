@@ -1,19 +1,22 @@
 package env
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 )
+var home, _ = os.UserHomeDir()
 type Environment struct {
 	Windows string 
-	linux   string
-	darwin  string
+	Linux   string
+	Darwin  string
 }
 var Env = Environment{
-	Windows: "",
-	linux:   "linux",
-	darwin:  "macos",
+	Windows: fmt.Sprintf("%s\\AppData\\Roaming\\kpm", home),
+	Linux:   fmt.Sprintf("%s/.kpm", home),
+	Darwin:  fmt.Sprintf("%s/Library/Application Support/kpm", home),
 }
+
 // DetectOS returns a clean string identifying the target environment
 func DetectOS() string {
 	switch runtime.GOOS {
@@ -28,6 +31,7 @@ func DetectOS() string {
 	}
 }
 func main() {
-home, _ := os.UserHomeDir()
-fmt.Println("User Home Directory:", home)
+	println(Env.Windows)
+	println(Env.Linux)
+	println(Env.Darwin)
 }

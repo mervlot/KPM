@@ -6,6 +6,7 @@ import (
 	initialization "kpm/init"
 	"kpm/install"
 	"kpm/list"
+	"kpm/ls"
 	"kpm/run"
 	"kpm/search"
 	"kpm/sync"
@@ -68,6 +69,11 @@ func main() {
 		sync.Main()
 	case "search", "-f", "--find":
 		search.Main()
+	case "ls":
+		ls.Ls(".")
+	case "usr-dir", "usrd":
+		home, _ := os.UserHomeDir()
+		fmt.Println("User Home Directory:", home)
 	default:
 		fmt.Printf("Unknown command: %s\n\n", args[1])
 		printHelp()

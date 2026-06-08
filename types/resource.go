@@ -23,7 +23,7 @@ type ResourceFile struct {
 
 
 
-type Pom_maven struct {
+type PomDependency struct {
 	XMLName      xml.Name     `xml:"project"`
 	ModelVersion string       `xml:"modelVersion"`
 	GroupID      string       `xml:"groupId"`
@@ -70,31 +70,4 @@ type Dependency struct {
 	ArtifactID string `xml:"artifactId"`
 	Version   string `xml:"version"`
 	Scope     string `xml:"scope,omitempty"`
-}
-
-
-
-
-
-
-
-
-
-//xml struct for maven metadata
-type Metadata_maven_xml struct {
-	XMLName    xml.Name   `xml:"metadata"`
-	GroupID    string     `xml:"groupId"`
-	ArtifactID string     `xml:"artifactId"`
-	Versioning Versioning_xml `xml:"versioning"`
-}
-
-type Versioning_xml struct {
-	Latest     string   `xml:"latest"`
-	Release    string   `xml:"release"`
-	LastUpdated string  `xml:"lastUpdated"`
-	Versions   Versions `xml:"versions"`
-}
-
-type Versions struct {
-	Version []string `xml:"version"`
 }
