@@ -5,6 +5,7 @@
   "path": "./",
   "mainDir": "./src",
   "dependencies": {
+    "https://d.f": "url",
     "io.kvision:kvision-server-javalin": "8.2.0",
     "kotlinx": "0",
     "kotliny": "0",

@@ -393,6 +393,14 @@
       "lpath": "C:\\mervlot\\mervnote\\MervCode\\KPM\\libs\\io.kvision\\kvision-common-remote\\8.2.0\\kvision-common-remote-8.2.0.jar",
       "gpath": "libs/io.kvision/kvision-common-remote/8.2.0/kvision-common-remote-8.2.0.jar",
       "hash": "sha256..."
+    },
+    {
+      "name": "https://d.f",
+      "source": "url",
+      "type": "jar",
+      "lpath": "C:\\mervlot\\mervnote\\MervCode\\KPM\\libs\\https:\\d.f\\https:\\d.f.jar",
+      "url": "fff",
+      "hash": "works"
     }
   ]
 }

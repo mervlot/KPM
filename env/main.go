@@ -12,7 +12,7 @@ type Environment struct {
 	Darwin  string
 }
 var Env = Environment{
-	Windows: fmt.Sprintf("%s\\AppData\\Roaming\\kpm", home),
+	Windows: fmt.Sprintf("%s\\AppData\\Local\\kpm", home),
 	Linux:   fmt.Sprintf("%s/.kpm", home),
 	Darwin:  fmt.Sprintf("%s/Library/Application Support/kpm", home),
 }

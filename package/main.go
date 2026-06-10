@@ -35,6 +35,12 @@ func SaveResourceFile(rf *types.ResourceFile) error {
 var resourcedata = NewResourceFile()
 
 func Main(update bool, params ...string) {
+	if len(params) == 0 {
+		fmt.Println("params are needed")
+		fmt.Println("Supported: -m (maven), -u (url)")
+		return
+		
+	}
 	var oldfile types.ResourceFile
 
 	// Load existing resource file if it exists
@@ -77,6 +83,9 @@ func Main(update bool, params ...string) {
 			}
 			name := params[i]
 			url := params[i+1]
+			if strings.Contains(url, "https:") || strings.Contains(url, "http:"){
+				fmt.Println("please uuse a valid url starting with https or http")
+			}
 			DownloadUrl(name, resourcedata, url, update, -1)
 			i += 2
 			continue
@@ -140,10 +149,11 @@ func Main(update bool, params ...string) {
 		}
 	}
 
-	resourcedata.Version = "1.0.0"
-	if err := SaveResourceFile(resourcedata); err != nil {
-		fmt.Println("Error saving resource file:", err)
-	} else {
-		fmt.Println("Resource file saved successfully!")
-	}
+	// resourcedata.Version = "1.0.0"
+	// if err := SaveResourceFile(resourcedata); err != nil {
+	// 	fmt.Println("Error saving resource file:", err)
+	// } else {
+	// 	fmt.Println("Resource file saved successfully!")
+	// }
+	
 }

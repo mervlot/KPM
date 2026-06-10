@@ -33,19 +33,30 @@ func (m Mavenurl) BuildLatestPath(version, pkgFormat string) string {
 }
 func (m Mavenurl) GlobalPath(version, pkgFormat string) string {
 	if env.DetectOS() == "windows"{
-	return fmt.Sprintf("%s\\",env.Env.Windows)
+	return fmt.Sprintf("%s\\%s\\%s\\%s\\%s-%s.%s",env.Env.Windows, m.Group,m.Artifact,version,m.Artifact,version,pkgFormat)
 	}else if env.DetectOS()== "linux"{
-			return fmt.Sprintf("%s/",env.Env.Linux)
+			return fmt.Sprintf("%s/%s/%s/%s/%s-%s.%s",env.Env.Linux, m.Group,m.Artifact,version,m.Artifact,version,pkgFormat)
 	}else if env.DetectOS()== "darwin"{
-			return fmt.Sprintf("%s/", env.Env.Darwin)
+			return fmt.Sprintf("%s/%s/%s/%s/%s-%s.%s", env.Env.Darwin, m.Group,m.Artifact,version,m.Artifact,version,pkgFormat)
+	}
+	
+	return ""
+}
+func (m Mavenurl) LocalMavenMetaData() string {
+	if env.DetectOS() == "windows"{
+	return fmt.Sprintf("%s\\%s\\%s\\maven-metadata.xml",env.Env.Windows, m.Group,m.Artifact)
+	}else if env.DetectOS()== "linux"{
+			return fmt.Sprintf("%s/%s/%s/maven-metadata.xml",env.Env.Linux, m.Group,m.Artifact)
+	}else if env.DetectOS()== "darwin"{
+			return fmt.Sprintf("%s/%s/%s/maven-metadata.xml", env.Env.Darwin, m.Group,m.Artifact)
 	}
 	
 	return ""
 }
 func (m Mavenurl) LocalPath(version, pkgFormat string) string {
 	if env.DetectOS() == "windows"{
-	return ".\\libs\\"
-	}else {return "./libs/"
+	return fmt.Sprintf(".\\libs\\%s\\%s\\%s\\%s-%s.%s", m.Group,m.Artifact,version,m.Artifact,version,pkgFormat)
+	}else {return fmt.Sprintf("./libs/%s/%s/%s/%s-%s.%s/", m.Group,m.Artifact,version,m.Artifact,version,pkgFormat)
 	}
 	
 }

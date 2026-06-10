@@ -3,12 +3,21 @@ package install
 import (
 	"fmt"
 	"kpm/types"
+	"kpm/utils"
 	"testing"
 )
-var mavenMeta types.Metadata
+	var mave types.Mavenurl = types.Mavenurl{
+		Group: "io.kvision",
+		Artifact: "kvisionserver-javalin",
+		Version: "1.2.0",
+
+	}
+
 func TestXmlParsing(t *testing.T) {
-	url := "https://repo1.maven.org/maven2/com/google/guava/guava/maven-metadata.xml"
-	mavenMeta,_ := GetMavenMetadata(url)
-	DownloadFile(url, "./s.xml")
-	fmt.Println(mavenMeta.GroupID)
+ if utils.IsFile(mave.LocalMavenMetaData()) {
+		fmt.Println("it exists")
+	}else{
+		fmt.Println("not found")
+
+	}
 }
