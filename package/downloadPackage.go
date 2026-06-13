@@ -93,6 +93,10 @@ func DownloadMavenInternal(group, artifact, version string, update bool, resourc
 		return
 	}
 
+	if pom.Packaging == "" {
+    pom.Packaging = "jar"
+}
+
 	// 3. Artifact Download
 	if pom.Packaging != "pom" {
 		if !utils.IsFile(maven.GlobalPath(version, pom.Packaging)) {
@@ -135,7 +139,7 @@ func DownloadMavenInternal(group, artifact, version string, update bool, resourc
 	}
 
 	// 5. Copy JAR to local project directory
-	if !utils.IsFile(maven.LocalPath(version, "jar")) {
-		utils.CopyFile(maven.GlobalPath(version, "jar"), maven.LocalPath(version, "jar"))
+	if !utils.IsFile(maven.LocalPath(version, pom.Packaging)) {
+		utils.CopyFile(maven.GlobalPath(version, pom.Packaging), maven.LocalPath(version, pom.Packaging))
 	}
 }
