@@ -5,154 +5,137 @@ import (
 	"kpm/types"
 	"kpm/utils"
 	"os"
-	"path/filepath"
 )
+
+// Declare the map, but initialize it per-install to avoid crossover
+var visited map[string]bool
 
 // DownloadMaven downloads a Maven artifact and updates both resource.kpm and package.kpm
 func DownloadMaven(group, artifact, version string, update bool, resourcedata *types.ResourceFile, index int) {
+	fmt.Printf("🚀 Starting resolution for: %s:%s:%s\n", group, artifact, version)
+	visited = make(map[string]bool)
 	DownloadMavenInternal(group, artifact, version, update, resourcedata, index, true)
+	fmt.Println("✨ Resolution complete.")
 }
 
 // DownloadMavenInternal is the internal implementation of DownloadMaven
-// updatePackageKpm controls whether to add the dependency to package.kpm (true for direct, false for transitive)
 func DownloadMavenInternal(group, artifact, version string, update bool, resourcedata *types.ResourceFile, index int, updatePackageKpm bool) {
-	if group =="" && artifact == "" {
-		fmt.Println("oops this shouldnt happend a function handles this error in the parent")
+	if group == "" || artifact == "" {
+		fmt.Printf("❌ Error: missing GroupID or ArtifactID in download request\n")
+		return
 	}
+
 	var maven types.Mavenurl = types.Mavenurl{
-		Group: group,
+		Group:    group,
 		Artifact: artifact,
-		Version: version,
-
+		Version:  version,
 	}
 
+	// 1. Metadata Resolution
 	if !utils.IsFile(maven.LocalMavenMetaData()) {
-		err := DownloadFile(maven.MetadataUrl(),maven.LocalMavenMetaData())
+		fmt.Printf("🌐 Metadata missing locally. Fetching online for %s:%s\n", group, artifact)
+		err := DownloadFile(maven.MetadataUrl(), maven.LocalMavenMetaData())
 		if err != nil {
-			fmt.Println(err)
-			return
-		}}
-		data, err := os.ReadFile(maven.LocalMavenMetaData())
-		if err != nil {
-			fmt.Println("read maven",err)
+			fmt.Printf("❌ Failed downloading metadata for %s:%s - %v\n", group, artifact, err)
 			return
 		}
-		meta, err := UnmarshalMavenXml(data)
+	} else {
+		fmt.Printf("🔍 Metadata found locally for %s:%s\n", group, artifact)
+	}
+
+	data, err := os.ReadFile(maven.LocalMavenMetaData())
+	if err != nil {
+		fmt.Printf("❌ Failed reading metadata for %s:%s - %v\n", group, artifact, err)
+		return
+	}
+
+	meta, err := UnmarshalMavenXml(data)
+	if err != nil {
+		fmt.Printf("❌ Failed parsing XML metadata for %s:%s - %v\n", group, artifact, err)
+		return
+	}
+
+	if version == "" {
+		version = meta.Versioning.Latest
+		maven.Version = version
+		fmt.Printf("📌 Resolved latest version: %s\n", version)
+	}
+
+	key := group + ":" + artifact + ":" + version
+	if visited[key] {
+		return // Already processed in this run
+	}
+	visited[key] = true
+	fmt.Printf("\n📦 Processing package: %s\n", key)
+
+	// 2. POM Resolution
+	if !utils.IsFile(maven.GlobalPath(version, "pom")) {
+		fmt.Printf("🌐 POM missing locally. Fetching online: %s\n", key)
+		err := DownloadFile(maven.PomUrl(), maven.GlobalPath(version, "pom"))
 		if err != nil {
-			fmt.Println("xml download",err)
+			fmt.Printf("❌ Failed downloading POM for %s - %v\n", key, err)
 			return
 		}
-		if version == ""{
-			version = meta.Versioning.Latest
-			maven.Version = meta.Versioning.Latest
-		}
-		if !utils.IsFile(maven.GlobalPath(version,"pom")){
-			err:= DownloadFile(maven.PomUrl(),maven.GlobalPath(version,"pom"))
+	} else {
+		fmt.Printf("🔍 POM already local: %s\n", key)
+	}
+
+	fmt.Printf("📄 Reading and parsing POM: %s\n", key)
+	pomData, err := os.ReadFile(maven.GlobalPath(version, "pom"))
+	if err != nil {
+		fmt.Printf("❌ Failed reading POM for %s - %v\n", key, err)
+		return
+	}
+
+	pom, err := UnmarshalMavenPom(pomData)
+	if err != nil {
+		fmt.Printf("❌ Failed parsing POM for %s - %v\n", key, err)
+		return
+	}
+
+	// 3. Artifact Download
+	if pom.Packaging != "pom" {
+		if !utils.IsFile(maven.GlobalPath(version, pom.Packaging)) {
+			fmt.Printf("🌐 Artifact missing locally. Fetching %s file for %s\n", pom.Packaging, key)
+			err := DownloadFile(maven.BuildPath(pom.Packaging), maven.GlobalPath(version, pom.Packaging))
 			if err != nil {
-			fmt.Println("pom download",err,maven.PomUrl())
-			return
-		}
-		}
-		pomData, err := os.ReadFile(maven.GlobalPath(version,"pom"))
-
-		pom, err :=UnmarshalMavenPom(pomData)
-		if len(pom.Dependencies) > 0{
-			for i,v := range pom.Dependencies{
-				
+				fmt.Printf("❌ Failed downloading %s artifact for %s - %v\n", pom.Packaging, key, err)
+				return
 			}
+		} else {
+			fmt.Printf("✅ Artifact already local: %s.%s\n", key, pom.Packaging)
 		}
-
-	
-	
-}
- 
-// DownloadUrl downloads a JAR from a URL and updates the resource file
-func DownloadUrl(artifact string, resourcedata *types.ResourceFile, url string, update bool, index int) {
-	if artifact == "" || url == "" {
-		fmt.Println("Error: artifact and url cannot be empty")
-		return
 	}
 
-	// Build the local file path for URL-based artifacts
-	fileName := fmt.Sprintf("%s.jar", artifact)
-	cwd, errCwd := os.Getwd()
-	var file string
-	if errCwd == nil {
-		file = filepath.Join(cwd, "libs", artifact, fileName)
-	} else {
-		file = fmt.Sprintf("./libs/%s/%s.jar", artifact, artifact)
+	// 4. Transitive Dependencies
+	if len(pom.Dependencies) > 0 {
+		fmt.Printf("🔀 Walking %d dependencies for %s\n", len(pom.Dependencies), key)
 	}
-
-	// If file already exists and not forcing update, just verify metadata
-	if _, err := os.Stat(file); err == nil && !update {
-		fmt.Println("Info: file already exists, checking resource metadata:", file)
-		idx := findResourceIndex(resourcedata, "", artifact, "")
-		if idx >= 0 {
-			fmt.Println("Info: resource metadata already present for", artifact)
-			return
+	for _, v := range pom.Dependencies {
+		if v.GroupID == "" || v.ArtifactID == "" {
+			continue
+		}
+		if v.Version == "" {
+			fmt.Printf("⚠️  Skipping dependency %s:%s (missing version - property resolution needed)\n", v.GroupID, v.ArtifactID)
+			continue
+		}
+		if v.GroupID == group && v.ArtifactID == artifact && v.Version == version {
+			continue
 		}
 
-		fmt.Println("Info: resource metadata missing; appending resource entry for", artifact)
-		AppendResource(
+		DownloadMavenInternal(
+			v.GroupID,
+			v.ArtifactID,
+			v.Version,
+			false,
 			resourcedata,
-			"",
-			artifact,
-			"",      // Version
-			"url",   // Source
-			"jar",   // Type
-			"",      // Domain
-			"",      // Path
-			file,    // LPath
-			"",      // GPath
-			url,     // URL
-			"works", // Hash
-		)
-
-		// Update package.kpm with the installed package
-		if err := UpdatePackageDependencyFromUrl(artifact); err != nil {
-			fmt.Println("Warning: failed to update package.kpm:", err)
-		}
-		return
-	}
-
-
-
-	if update && index >= 0 {
-		UpdateResource(
-			resourcedata,
-			"",
-			artifact,
-			"",      // Version
-			"url",   // Source
-			"jar",   // Type
-			"",      // Domain
-			"",      // Path
-			file,    // LPath
-			"",      // GPath
-			url,     // URL
-			"works", // Hash
-			index,
-		)
-	} else {
-		AppendResource(
-			resourcedata,
-			"",
-			artifact,
-			"",      // Version
-			"url",   // Source
-			"jar",   // Type
-			"",      // Domain
-			"",      // Path
-			file,    // LPath
-			"",      // GPath
-			url,     // URL
-			"works", // Hash
+			-1,
+			false,
 		)
 	}
 
-	// Update package.kpm with the installed package
-	if err := UpdatePackageDependencyFromUrl(artifact); err != nil {
-		fmt.Println("Warning: failed to update package.kpm:", err)
+	// 5. Copy JAR to local project directory
+	if !utils.IsFile(maven.LocalPath(version, "jar")) {
+		utils.CopyFile(maven.GlobalPath(version, "jar"), maven.LocalPath(version, "jar"))
 	}
 }
-

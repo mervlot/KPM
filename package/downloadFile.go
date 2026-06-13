@@ -14,35 +14,42 @@ var client = &http.Client{
 }
 
 func DownloadFile(url, outFile string) error {
-    if url == "" || outFile == "" {
-        return fmt.Errorf("invalid url or output path")
-    }
+	if url == "" || outFile == "" {
+		return fmt.Errorf("invalid url or output path")
+	}
 
-    req, err := http.NewRequest("GET", url, nil)
-    if err != nil {
-        return err
-    }
+	fmt.Printf("   -> GET %s\n", url) // Network-level logging
 
-    resp, err := client.Do(req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
 
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("bad status: %d", resp.StatusCode)
-    }
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    if err := os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
-        return err
-    }
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %d", resp.StatusCode)
+	}
 
-    f, err := os.Create(outFile)
-    if err != nil {
-        return err
-    }
-    defer f.Close()
+	if err := os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
+		return err
+	}
 
-    _, err = io.Copy(f, resp.Body)
-    return err
+	f, err := os.Create(outFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	bytesWritten, err := io.Copy(f, resp.Body)
+	if err == nil {
+		// Convert bytes to KB for readable output
+		fmt.Printf("   -> 💾 Saved %.2f KB to %s\n", float64(bytesWritten)/1024, outFile)
+	}
+	
+	return err
 }
