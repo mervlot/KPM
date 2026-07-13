@@ -4,79 +4,107 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"kpm/internal/downloader"
-	"kpm/internal/graph"
+	"kpm/internal/downloader" // Adjust this import path to match your actual module name
 )
 
-// InstallPlan is one artifact that needs to land on disk under libsDir.
-type InstallPlan struct {
-	Node    *graph.Node
-	DestDir string // e.g. "./libs/<group>/<artifact>/<version>"
-}
+// fetchArtifact is the core "offline-first" function.
+// It checks the local cache first. If missing, it downloads from the network and saves to cache.
+func fetchArtifact(groupID, artifactID, version, ext string, client *downloader.Client) ([]byte, string, error) {
+	// 1. OFFLINE-FIRST: Check local cache first
+	groupPath := filepath.Join("libs", filepath.FromSlash(groupID))
+	artifactPath := filepath.Join(groupPath, artifactID, version)
+	fileName := fmt.Sprintf("%s-%s.%s", artifactID, version, ext)
+	localPath := filepath.Join(artifactPath, fileName)
 
-// BuildInstallPlan returns the winning node for every coordinate in the
-// result (skipping "pom"-only packaging, which has nothing to download,
-// and test-scope nodes, which never need to be installed for a build).
-func BuildInstallPlan(res *Result, libsRoot string) []InstallPlan {
-	var plans []InstallPlan
-	for _, n := range res.Winners {
-		if n.Type == "pom" {
-			continue
+	// Check if file exists and is not empty (size > 0)
+	info, err := os.Stat(localPath)
+	if err == nil && !info.IsDir() && info.Size() > 0 {
+		// Found in cache! Read from disk. Zero network requests.
+		data, err := os.ReadFile(localPath)
+		if err == nil {
+			return data, localPath, nil
 		}
-		if n.Scope == "test" {
-			continue
-		}
-		dest := filepath.Join(libsRoot, n.Group, n.Artifact, n.Version)
-		plans = append(plans, InstallPlan{Node: n, DestDir: dest})
+		// If reading fails (e.g., corrupted file), fall through to network download
 	}
-	return plans
+
+	// 2. NETWORK FALLBACK: Only hit the network if not cached
+	mavenGroupPath := strings.ReplaceAll(groupID, ".", "/")
+	url := fmt.Sprintf("https://repo1.maven.org/maven2/%s/%s/%s/%s-%s.%s",
+		mavenGroupPath, artifactID, version, artifactID, version, ext)
+
+	data, err := client.Get(url)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch %s: %w", url, err)
+	}
+
+	// 3. SAVE TO CACHE: Persist to disk for future offline-first use
+	if err := os.MkdirAll(artifactPath, 0755); err != nil {
+		return nil, "", fmt.Errorf("failed to create cache dir %s: %w", artifactPath, err)
+	}
+
+	if err := os.WriteFile(localPath, data, 0644); err != nil {
+		return nil, "", fmt.Errorf("failed to write to cache %s: %w", localPath, err)
+	}
+
+	return data, localPath, nil
 }
 
-// Install downloads every artifact in the plan in parallel (bounded by
-// concurrency), verifying checksums via the Fetcher, and reports every
-// failure rather than stopping at the first so a single bad artifact
-// doesn't obscure unrelated ones.
-func (r *Resolver) Install(plans []InstallPlan, concurrency int) []error {
-	return r.InstallWithProgress(plans, concurrency, nil)
-}
+// ResolveAndInstall handles the dependency resolution and installation process.
+// (Adapt this to match your existing function signatures)
+func ResolveAndInstall(dependencies []Dependency) error {
+	client := downloader.New()
+	
+	// Optional: Set rate limit explicitly (500ms = 2 req/sec)
+	downloader.SetGlobalPace(500 * time.Millisecond)
 
-// InstallWithProgress is Install, additionally invoking onStep(detail) once
-// per completed artifact (success or failure) so callers can drive a live
-// progress line instead of the download phase going silent.
-func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, onStep func(detail string)) []error {
-	jobs := make([]downloader.Job, 0, len(plans))
-	for _, p := range plans {
-		p := p
-		ext := p.Node.Type
-		if ext == "" {
-			ext = "jar"
-		}
-		jobs = append(jobs, downloader.Job{
-			Name: fmt.Sprintf("%s:%s:%s", p.Node.Group, p.Node.Artifact, p.Node.Version),
+	var jobs []downloader.Job
+
+	for _, dep := range dependencies {
+		dep := dep // capture loop variable
+		job := downloader.Job{
+			Name: fmt.Sprintf("%s:%s:%s", dep.GroupID, dep.ArtifactID, dep.Version),
 			Run: func() error {
-				data, err := r.fetcher.FetchArtifact(p.Node.Group, p.Node.Artifact, p.Node.Version, p.Node.Classifier, ext)
+				// Fetch POM first (to read transitive dependencies)
+				_, pomPath, err := fetchArtifact(dep.GroupID, dep.ArtifactID, dep.Version, "pom", client)
 				if err != nil {
-					if onStep != nil {
-						onStep(p.Node.Coordinate.String() + " (failed)")
-					}
-					return err
+					return fmt.Errorf("failed to get POM for %s: %w", job.Name, err)
 				}
-				if err := os.MkdirAll(p.DestDir, 0o755); err != nil {
-					return err
+				fmt.Printf("✅ Resolved POM: %s\n", pomPath)
+
+				// Fetch JAR
+				_, jarPath, err := fetchArtifact(dep.GroupID, dep.ArtifactID, dep.Version, "jar", client)
+				if err != nil {
+					return fmt.Errorf("failed to get JAR for %s: %w", job.Name, err)
 				}
-				name := p.Node.Artifact + "-" + p.Node.Version
-				if p.Node.Classifier != "" {
-					name += "-" + p.Node.Classifier
-				}
-				dest := filepath.Join(p.DestDir, name+"."+ext)
-				werr := os.WriteFile(dest, data, 0o644)
-				if onStep != nil {
-					onStep(p.Node.Coordinate.String())
-				}
-				return werr
+				fmt.Printf("✅ Installed JAR: %s\n", jarPath)
+
+				return nil
 			},
-		})
+		}
+		jobs = append(jobs, job)
 	}
-	return downloader.RunPool(jobs, concurrency)
+
+	// Execute sequentially (no goroutines) to respect rate limits
+	fmt.Println("⏳ Installing dependencies sequentially (offline-first enabled)...")
+	errs := downloader.RunPool(jobs, 1) // concurrency param ignored, forces sequential
+	
+	if len(errs) > 0 {
+		fmt.Println("✖ Resolution failed:")
+		for _, err := range errs {
+			fmt.Printf("  - %v\n", err)
+		}
+		return fmt.Errorf("installation failed with %d errors", len(errs))
+	}
+
+	fmt.Println("🎉 All dependencies installed successfully!")
+	return nil
+}
+
+// Dependency represents a parsed dependency from package.kpm
+type Dependency struct {
+	GroupID    string
+	ArtifactID string
+	Version    string
 }
