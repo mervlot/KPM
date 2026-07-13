@@ -7,7 +7,7 @@
       "version": "1.5.18",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "ch.qos.logback:logback-core::jar@1.5.38": {
@@ -16,7 +16,7 @@
       "version": "1.5.38",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "com.fasterxml.jackson.core:jackson-annotations::jar@2.19.2": {
@@ -25,7 +25,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "com.fasterxml.jackson.core:jackson-core::jar@2.19.2": {
@@ -34,7 +34,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "com.fasterxml.jackson.core:jackson-databind::jar@2.19.2": {
@@ -43,7 +43,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "com.fasterxml.jackson.datatype:jackson-datatype-jdk8::jar@2.19.2": {
@@ -52,7 +52,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "com.fasterxml.jackson.datatype:jackson-datatype-jsr310::jar@2.19.2": {
@@ -61,7 +61,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "com.fasterxml.jackson.module:jackson-module-parameter-names::jar@2.19.2": {
@@ -70,7 +70,7 @@
       "version": "2.19.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "com.google.code.findbugs:jsr305::jar@3.0.2": {
@@ -79,7 +79,7 @@
       "version": "3.0.2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "io.kvision:kvision-common-annotations::jar@8.2.0": {
@@ -124,7 +124,7 @@
       "version": "1.1.3",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "io.micrometer:micrometer-commons::jar@1.14.9": {
@@ -133,7 +133,7 @@
       "version": "1.14.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "io.micrometer:micrometer-observation::jar@1.14.9": {
@@ -142,7 +142,7 @@
       "version": "1.14.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "jakarta.activation:jakarta.activation-api::jar@2.2.0-M2": {
@@ -151,7 +151,7 @@
       "version": "2.2.0-M2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "jakarta.annotation:jakarta.annotation-api::jar@2.1.1": {
@@ -160,7 +160,7 @@
       "version": "2.1.1",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "jakarta.mail:jakarta.mail-api::jar@2.2.0-M1": {
@@ -169,7 +169,7 @@
       "version": "2.2.0-M1",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "jakarta.servlet:jakarta.servlet-api::jar@6.2.0-M2": {
@@ -178,7 +178,7 @@
       "version": "6.2.0-M2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 5
     },
     "javax.servlet:javax.servlet-api::jar@4.0.1": {
@@ -187,7 +187,7 @@
       "version": "4.0.1",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "org.apache.logging.log4j:log4j-api::jar@3.0.0-beta2": {
@@ -196,7 +196,7 @@
       "version": "3.0.0-beta2",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "org.apache.logging.log4j:log4j-to-slf4j::jar@2.24.3": {
@@ -205,7 +205,7 @@
       "version": "2.24.3",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "org.apache.tomcat.embed:tomcat-embed-core::jar@10.1.43": {
@@ -214,7 +214,7 @@
       "version": "10.1.43",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.apache.tomcat.embed:tomcat-embed-el::jar@10.1.43": {
@@ -223,7 +223,7 @@
       "version": "10.1.43",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.apache.tomcat.embed:tomcat-embed-websocket::jar@10.1.43": {
@@ -232,7 +232,7 @@
       "version": "10.1.43",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.aspectj:aspectjrt::jar@1.9.20.1": {
@@ -241,7 +241,7 @@
       "version": "1.9.20.1",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "org.codehaus.janino:janino::jar@3.1.12": {
@@ -250,7 +250,7 @@
       "version": "3.1.12",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "org.fusesource.jansi:jansi::jar@2.4.3": {
@@ -259,7 +259,7 @@
       "version": "2.4.3",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 5
     },
     "org.jetbrains.kotlin:kotlin-stdlib::jar@2.1.10": {
@@ -331,7 +331,7 @@
       "version": "2.0.17",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "org.slf4j:slf4j-api::jar@2.1.0-alpha1": {
@@ -340,7 +340,7 @@
       "version": "2.1.0-alpha1",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 4
     },
     "org.springframework.boot:spring-boot-autoconfigure::jar@3.5.4": {
@@ -349,7 +349,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework.boot:spring-boot-starter-json::jar@3.5.4": {
@@ -358,7 +358,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 1
     },
     "org.springframework.boot:spring-boot-starter-logging::jar@3.5.4": {
@@ -367,7 +367,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework.boot:spring-boot-starter-tomcat::jar@3.5.4": {
@@ -376,7 +376,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 1
     },
     "org.springframework.boot:spring-boot-starter-web::jar@3.5.4": {
@@ -385,7 +385,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 0
     },
     "org.springframework.boot:spring-boot-starter::jar@3.5.4": {
@@ -394,7 +394,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 1
     },
     "org.springframework.boot:spring-boot::jar@3.5.4": {
@@ -403,7 +403,7 @@
       "version": "3.5.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-aop::jar@6.2.9": {
@@ -412,7 +412,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-beans::jar@6.2.9": {
@@ -421,7 +421,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-context::jar@6.2.9": {
@@ -430,7 +430,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-core::jar@6.2.9": {
@@ -439,7 +439,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-expression::jar@6.2.9": {
@@ -448,7 +448,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     },
     "org.springframework:spring-jcl::jar@6.2.9": {
@@ -457,7 +457,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 3
     },
     "org.springframework:spring-web::jar@6.2.9": {
@@ -466,7 +466,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 1
     },
     "org.springframework:spring-webmvc::jar@6.2.9": {
@@ -475,7 +475,7 @@
       "version": "6.2.9",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 1
     },
     "org.yaml:snakeyaml::jar@2.4": {
@@ -484,7 +484,7 @@
       "version": "2.4",
       "type": "",
       "scope": "compile",
-      "repository": "central",
+      "repository": "cache",
       "depth": 2
     }
   }
