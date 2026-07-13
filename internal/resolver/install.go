@@ -40,25 +40,43 @@ func BuildInstallPlan(result *Result, libsDir string) []InstallPlan {
 	return plans
 }
 
-// InstallWithProgress downloads the planned artifacts with progress tracking.
-// It uses the Resolver's fetcher, which is TRULY offline-first:
-// 1. Checks the global cache (~/.kpm/repository) first.
-// 2. Respects the --offline flag (fails immediately if not cached).
-// 3. Verifies checksums for build artifacts.
-// 4. Syncs the fetched bytes to the local project ./libs directory.
-func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, stepFunc func(detail string)) []error {
+// InstallResult tracks download statistics for accurate progress reporting.
+type InstallResult struct {
+	Downloaded int
+	Cached     int
+	Errors     []error
+}
+
+// InstallWithProgress downloads the planned artifacts with accurate progress tracking.
+// It distinguishes between cache hits (already in ./libs) and actual downloads.
+func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, stepFunc func(detail string)) InstallResult {
 	// Enforce strict rate limiting to avoid Maven Central 429s
 	downloader.SetGlobalPace(500 * time.Millisecond)
 
+	result := InstallResult{}
 	var jobs []downloader.Job
-	var errs []error
 
 	for _, plan := range plans {
 		plan := plan // capture loop variable for closure
 		job := downloader.Job{
 			Name: fmt.Sprintf("%s:%s:%s (%s)", plan.GroupID, plan.ArtifactID, plan.Version, plan.Extension),
 			Run: func() error {
-				// 1. TRUE OFFLINE-FIRST FETCH: Use the robust fetcher (handles global cache, offline flag, checksums)
+				// 1. CHECK LOCAL CACHE FIRST: Is it already in ./libs?
+				groupPath := filepath.Join(plan.TargetDir, filepath.FromSlash(plan.GroupID))
+				artifactPath := filepath.Join(groupPath, plan.ArtifactID, plan.Version)
+				fileName := fmt.Sprintf("%s-%s.%s", plan.ArtifactID, plan.Version, plan.Extension)
+				localPath := filepath.Join(artifactPath, fileName)
+
+				if _, err := os.Stat(localPath); err == nil {
+					// Already exists in local ./libs - skip download
+					result.Cached++
+					if stepFunc != nil {
+						stepFunc(fmt.Sprintf("%s:%s:%s (cached)", plan.GroupID, plan.ArtifactID, plan.Version))
+					}
+					return nil
+				}
+
+				// 2. TRUE OFFLINE-FIRST FETCH: Use the robust fetcher (handles global cache, offline flag, checksums)
 				var data []byte
 				var err error
 
@@ -72,13 +90,8 @@ func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, ste
 					return fmt.Errorf("failed to fetch %s:%s:%s: %w", plan.GroupID, plan.ArtifactID, plan.Version, err)
 				}
 
-				// 2. SAVE TO LOCAL PROJECT DIR: The fetcher caches globally, but KPM also 
+				// 3. SAVE TO LOCAL PROJECT DIR: The fetcher caches globally, but KPM also 
 				// maintains a local ./libs directory for the project as per the README.
-				groupPath := filepath.Join(plan.TargetDir, filepath.FromSlash(plan.GroupID))
-				artifactPath := filepath.Join(groupPath, plan.ArtifactID, plan.Version)
-				fileName := fmt.Sprintf("%s-%s.%s", plan.ArtifactID, plan.Version, plan.Extension)
-				localPath := filepath.Join(artifactPath, fileName)
-
 				if err := os.MkdirAll(artifactPath, 0755); err != nil {
 					return fmt.Errorf("failed to create local dir %s: %w", artifactPath, err)
 				}
@@ -87,7 +100,10 @@ func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, ste
 					return fmt.Errorf("failed to write to local %s: %w", localPath, err)
 				}
 
-				// 3. Report progress
+				// 4. Track actual download
+				result.Downloaded++
+
+				// 5. Report progress
 				if stepFunc != nil {
 					stepFunc(fmt.Sprintf("%s:%s:%s", plan.GroupID, plan.ArtifactID, plan.Version))
 				}
@@ -101,8 +117,8 @@ func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, ste
 	jobErrs := downloader.RunPool(jobs, 1)
 
 	for _, err := range jobErrs {
-		errs = append(errs, err)
+		result.Errors = append(result.Errors, err)
 	}
 
-	return errs
+	return result
 }

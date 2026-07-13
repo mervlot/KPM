@@ -31,15 +31,12 @@ func fail(err error) int {
 	return 1
 }
 
-func cmdInit(args []string) int {
+func cmdInit(_ []string) int {
 	if _, err := os.Stat(config.ManifestFile); err == nil {
 		fmt.Println(config.ManifestFile, "already exists")
 		return 1
 	}
 	name := "my-kpm-project"
-	if len(args) > 0 {
-		name = args[0]
-	}
 	m := config.New(name)
 	if err := m.Save(config.ManifestFile); err != nil {
 		return fail(err)
@@ -131,7 +128,7 @@ func cmdUpdate(args []string, offline bool) int {
 // cmdInstall resolves (reusing kpm.lock if present and untouched) and
 // downloads every dependency. cmdInstall(sync=true) forces a fresh
 // resolution and rewrites the lock file even if manifest looks unchanged.
-func cmdInstall(args []string, offline, forceSync bool) int {
+func cmdInstall(_ []string, offline, forceSync bool) int {
 	return runResolveAndInstall(offline, forceSync)
 }
 
@@ -158,18 +155,30 @@ func runResolveAndInstall(offline, forceSync bool) int {
 	}
 
 	plans := resolver.BuildInstallPlan(result, libsDir)
-	fmt.Printf("Resolved %d artifacts, downloading %d...\n", len(result.Winners), len(plans))
+	
+	// Show accurate message - don't claim we're downloading everything
+	logger.Info("Resolved %d artifacts, installing to ./libs...", len(result.Winners))
 
 	installProgress := logger.NewProgress("⬇ downloading", len(plans))
 	downloader.OnRetry = installProgress.Retrying
-	if errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step); len(errs) > 0 {
-		logger.FinishActiveProgress(fmt.Sprintf("✖ %d artifact(s) failed", len(errs)))
-		for _, e := range errs {
+	
+	// Install with accurate tracking
+	installResult := res.InstallWithProgress(plans, installConcurrency, installProgress.Step)
+	
+	// Show accurate summary
+	if installResult.Downloaded > 0 || installResult.Cached > 0 {
+		logger.FinishActiveProgress(fmt.Sprintf("✔ %d downloaded, %d cached", 
+			installResult.Downloaded, installResult.Cached))
+	} else {
+		logger.FinishActiveProgress("✔ all artifacts already present")
+	}
+
+	if len(installResult.Errors) > 0 {
+		for _, e := range installResult.Errors {
 			logger.Warn("%s", e)
 		}
-		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
+		return fail(fmt.Errorf("%d artifact(s) failed to install", len(installResult.Errors)))
 	}
-	logger.FinishActiveProgress(fmt.Sprintf("✔ downloaded %d artifact(s)", len(plans)))
 
 	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
 	if err := lf.Save(lockfile.FileName); err != nil {
@@ -179,7 +188,7 @@ func runResolveAndInstall(offline, forceSync bool) int {
 	return 0
 }
 
-func cmdBuild(args []string, offline bool) int {
+func cmdBuild(_ []string, offline bool) int {
 	if code := runResolveAndInstall(offline, false); code != 0 {
 		return code
 	}
@@ -200,7 +209,7 @@ func cmdBuild(args []string, offline bool) int {
 	return 0
 }
 
-func cmdGraph(args []string, offline bool) int {
+func cmdGraph(_ []string, offline bool) int {
 	manifest, res, _, err := setup(offline)
 	if err != nil {
 		return fail(err)
@@ -257,7 +266,7 @@ func cmdWhy(args []string, offline bool) int {
 	return 0
 }
 
-func cmdOutdated(args []string, offline bool) int {
+func cmdOutdated(_ []string, offline bool) int {
 	manifest, res, fetcher, err := setup(offline)
 	if err != nil {
 		return fail(err)
@@ -289,7 +298,7 @@ func cmdOutdated(args []string, offline bool) int {
 	return 0
 }
 
-func cmdDoctor(args []string) int {
+func cmdDoctor(_ []string) int {
 	c, err := cache.Open()
 	if err != nil {
 		return fail(err)
@@ -313,7 +322,7 @@ func cmdDoctor(args []string) int {
 	return 1
 }
 
-func cmdClean(args []string) int {
+func cmdClean(_ []string) int {
 	if err := os.RemoveAll(libsDir); err != nil {
 		return fail(err)
 	}
