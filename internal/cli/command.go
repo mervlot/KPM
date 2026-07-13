@@ -16,14 +16,6 @@ import (
 )
 
 const libsDir = "./libs"
-
-// installConcurrency is deliberately low. The real protection against
-// Maven Central's rate limiting is downloader.globalPace (a process-wide
-// minimum spacing between requests, shared by every goroutine); this just
-// bounds how many downloads can be in-flight/decompressing/writing to disk
-// at once. A higher number here would NOT download faster — every one of
-// them still has to wait its turn at the same global pacer — it would just
-// mean more goroutines parked waiting on that lock at once.
 const installConcurrency = 2
 
 func fail(err error) int {
@@ -56,18 +48,34 @@ func cmdAdd(args []string, offline bool) int {
 	if err != nil {
 		return fail(fmt.Errorf("no %s found — run `kpm init` first", config.ManifestFile))
 	}
+
+	// Create a test manifest to validate resolution BEFORE saving to disk
+	testManifest := *manifest
+	testManifest.Dependencies = make(map[string]config.DependencySpec)
+	for k, v := range manifest.Dependencies {
+		testManifest.Dependencies[k] = v
+	}
+
 	for _, spec := range args {
 		group, artifact, ver := splitAddSpec(spec)
 		if group == "" || artifact == "" {
 			fmt.Println("skipping invalid dependency spec:", spec, "(expected group:artifact[:version])")
 			continue
 		}
-		manifest.Dependencies[group+":"+artifact] = config.DependencySpec{Version: ver}
+		testManifest.Dependencies[group+":"+artifact] = config.DependencySpec{Version: ver}
 	}
+
+	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
+	if code := runResolveAndInstall(&testManifest, offline, true); code != 0 {
+		return code // Failed, do NOT persist changes to package.kpm
+	}
+
+	manifest.Dependencies = testManifest.Dependencies
 	if err := manifest.Save(config.ManifestFile); err != nil {
 		return fail(err)
 	}
-	return runResolveAndInstall(offline, true)
+	fmt.Println("Successfully added dependencies and updated", config.ManifestFile)
+	return 0
 }
 
 func cmdRemove(args []string) int {
@@ -79,10 +87,17 @@ func cmdRemove(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+
+	testManifest := *manifest
+	testManifest.Dependencies = make(map[string]config.DependencySpec)
+	for k, v := range manifest.Dependencies {
+		testManifest.Dependencies[k] = v
+	}
+
 	removed := false
 	for _, name := range args {
-		if _, ok := manifest.Dependencies[name]; ok {
-			delete(manifest.Dependencies, name)
+		if _, ok := testManifest.Dependencies[name]; ok {
+			delete(testManifest.Dependencies, name)
 			removed = true
 		} else {
 			fmt.Println("not a direct dependency (nothing to remove):", name)
@@ -91,56 +106,107 @@ func cmdRemove(args []string) int {
 	if !removed {
 		return 1
 	}
+
+	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
+	if code := runResolveAndInstall(&testManifest, false, true); code != 0 {
+		return code // Failed, do NOT persist changes to package.kpm
+	}
+
+	manifest.Dependencies = testManifest.Dependencies
 	if err := manifest.Save(config.ManifestFile); err != nil {
 		return fail(err)
 	}
-	return runResolveAndInstall(false, true)
+	fmt.Println("Successfully removed dependencies and updated", config.ManifestFile)
+	return 0
 }
 
-// cmdUpdate clears the pinned version for one dependency (or all, if none
-// named) so resolution picks up the latest version satisfying constraints.
 func cmdUpdate(args []string, offline bool) int {
 	manifest, err := config.Load(config.ManifestFile)
 	if err != nil {
 		return fail(err)
 	}
+
+	testManifest := *manifest
+	testManifest.Dependencies = make(map[string]config.DependencySpec)
+	for k, v := range manifest.Dependencies {
+		testManifest.Dependencies[k] = v
+	}
+
 	targets := args
 	if len(targets) == 0 {
-		for name := range manifest.Dependencies {
+		for name := range testManifest.Dependencies {
 			targets = append(targets, name)
 		}
 	}
+
 	for _, name := range targets {
-		spec, ok := manifest.Dependencies[name]
+		spec, ok := testManifest.Dependencies[name]
 		if !ok {
 			fmt.Println("not a direct dependency:", name)
 			continue
 		}
 		spec.Version = "" // "" triggers metadata "latest" lookup during resolution
-		manifest.Dependencies[name] = spec
+		testManifest.Dependencies[name] = spec
 	}
+
+	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
+	if code := runResolveAndInstall(&testManifest, offline, true); code != 0 {
+		return code // Failed, do NOT persist changes to package.kpm
+	}
+
+	manifest.Dependencies = testManifest.Dependencies
 	if err := manifest.Save(config.ManifestFile); err != nil {
 		return fail(err)
 	}
-	return runResolveAndInstall(offline, true)
+	fmt.Println("Successfully updated dependencies and updated", config.ManifestFile)
+	return 0
 }
 
-// cmdInstall resolves (reusing kpm.lock if present and untouched) and
-// downloads every dependency. cmdInstall(sync=true) forces a fresh
-// resolution and rewrites the lock file even if manifest looks unchanged.
 func cmdInstall(_ []string, offline, forceSync bool) int {
-	return runResolveAndInstall(offline, forceSync)
+	manifest, err := config.Load(config.ManifestFile)
+	if err != nil {
+		return fail(err)
+	}
+	return runResolveAndInstall(manifest, offline, forceSync)
 }
 
-func runResolveAndInstall(offline, forceSync bool) int {
-	manifest, res, fetcher, err := setup(offline)
+// setupWithManifest loads the resolver/fetcher stack using the provided manifest,
+// avoiding disk reads for commands that want to test a manifest before saving it.
+func setupWithManifest(manifest *config.Manifest, offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetcher, error) {
+	repos := repository.BuildSet(manifest)
+	c, err := cache.Open()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	http := downloader.New()
+
+	progress := logger.NewProgress("🔍 resolving", 0)
+	resolver.OnResolveStep = progress.Step
+	downloader.OnRetry = progress.Retrying
+
+	fetcher := resolver.NewFetcher(repos, c, http, offline)
+	res := resolver.New(fetcher)
+	return manifest, res, fetcher, nil
+}
+
+func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetcher, error) {
+	manifest, err := config.Load(config.ManifestFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil, nil, fmt.Errorf("no %s found in this directory — run `kpm init` first", config.ManifestFile)
+		}
+		return nil, nil, nil, err
+	}
+	return setupWithManifest(manifest, offline)
+}
+
+func runResolveAndInstall(manifest *config.Manifest, offline, forceSync bool) int {
+	_, res, fetcher, err := setupWithManifest(manifest, offline)
 	if err != nil {
 		return fail(err)
 	}
 
-	_ = forceSync // kept for CLI symmetry; resolution is always freshly computed today,
-	// matching "sync" semantics — a future revision can short-circuit to the
-	// existing kpm.lock when the manifest hash is unchanged and forceSync is false.
+	_ = forceSync // Resolution is always freshly computed today.
 
 	result, err := res.Resolve(manifest)
 	if err != nil {
@@ -155,31 +221,25 @@ func runResolveAndInstall(offline, forceSync bool) int {
 	}
 
 	plans := resolver.BuildInstallPlan(result, libsDir)
-	
-	// Show accurate message - don't claim we're downloading everything
+
 	logger.Info("Resolved %d artifacts, installing to ./libs...", len(result.Winners))
 
 	installProgress := logger.NewProgress("⬇ downloading", len(plans))
 	downloader.OnRetry = installProgress.Retrying
-	
-	// Install with accurate tracking
-	installResult := res.InstallWithProgress(plans, installConcurrency, installProgress.Step)
-	
-	// Show accurate summary
-	if installResult.Downloaded > 0 || installResult.Cached > 0 {
-		logger.FinishActiveProgress(fmt.Sprintf("✔ %d downloaded, %d cached", 
-			installResult.Downloaded, installResult.Cached))
-	} else {
-		logger.FinishActiveProgress("✔ all artifacts already present")
-	}
 
-	if len(installResult.Errors) > 0 {
-		for _, e := range installResult.Errors {
+	// CRITICAL FIX: Correctly handle []error return type
+	errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step)
+
+	if len(errs) > 0 {
+		for _, e := range errs {
 			logger.Warn("%s", e)
 		}
-		return fail(fmt.Errorf("%d artifact(s) failed to install", len(installResult.Errors)))
+		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
 	}
 
+	logger.FinishActiveProgress("✔ all artifacts installed successfully")
+
+	// CRITICAL FIX: kpm.lock is ONLY written after ALL installations succeed.
 	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
 	if err := lf.Save(lockfile.FileName); err != nil {
 		return fail(err)
@@ -189,12 +249,12 @@ func runResolveAndInstall(offline, forceSync bool) int {
 }
 
 func cmdBuild(_ []string, offline bool) int {
-	if code := runResolveAndInstall(offline, false); code != 0 {
-		return code
-	}
 	manifest, err := config.Load(config.ManifestFile)
 	if err != nil {
 		return fail(err)
+	}
+	if code := runResolveAndInstall(manifest, offline, false); code != 0 {
+		return code
 	}
 	script, ok := manifest.Scripts["build"]
 	if !ok {
@@ -202,9 +262,6 @@ func cmdBuild(_ []string, offline bool) int {
 		return 0
 	}
 	fmt.Println("running build script:", script)
-	// Script execution intentionally kept simple/explicit (no shell
-	// interpolation) to avoid the injection surface of exec'ing arbitrary
-	// shell strings; a future revision can add a sandboxed script runner.
 	fmt.Println("(script execution is not yet wired up in this build — run it manually):", script)
 	return 0
 }
@@ -228,7 +285,7 @@ func cmdGraph(_ []string, offline bool) int {
 		if w, ok := result.Winners[n.Coordinate.Key()]; ok && w.Version == n.Version {
 			marker = "*"
 		}
-		fmt.Printf("%s%s %s:%s %s (%s)\n", strings.Repeat("  ", n.Depth), marker, n.Group, n.Artifact, n.Version, n.Scope)
+		fmt.Printf("%s%s %s:%s %s (%s)\n", strings.Repeat(" ", n.Depth), marker, n.Group, n.Artifact, n.Version, n.Scope)
 	}
 	fmt.Println("\n(* = winning version after conflict resolution)")
 	return 0
@@ -256,7 +313,7 @@ func cmdWhy(args []string, offline bool) int {
 		found = true
 		fmt.Printf("%s:%s@%s\n", n.Group, n.Artifact, n.Version)
 		for _, path := range result.Graph.Why(n.Key()) {
-			fmt.Println("  " + strings.Join(path, " -> "))
+			fmt.Println(" " + strings.Join(path, " -> "))
 		}
 	}
 	if !found {

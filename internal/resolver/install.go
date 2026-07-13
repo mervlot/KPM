@@ -4,121 +4,90 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"kpm/internal/downloader"
+	"kpm/internal/graph"
 )
 
-// InstallPlan represents a single artifact to be installed.
+// InstallPlan is one artifact that needs to land on disk under libsDir.
 type InstallPlan struct {
-	GroupID    string
-	ArtifactID string
-	Version    string
-	Extension  string // "pom" or "jar"
-	TargetDir  string // e.g., "./libs"
+	Node    *graph.Node
+	DestDir string // e.g. "./libs/<group>/<artifact>/<version>/"
 }
 
-// BuildInstallPlan creates a list of artifacts to download based on the resolution result.
-func BuildInstallPlan(result *Result, libsDir string) []InstallPlan {
+// BuildInstallPlan returns the winning node for every coordinate in the
+// result (skipping "pom"-only packaging, which has nothing to download,
+// and test-scope nodes, which never need to be installed for a build).
+func BuildInstallPlan(res *Result, libsRoot string) []InstallPlan {
 	var plans []InstallPlan
-	for _, winner := range result.Winners {
-		plans = append(plans, InstallPlan{
-			GroupID:    winner.Group,
-			ArtifactID: winner.Artifact,
-			Version:    winner.Version,
-			Extension:  "pom",
-			TargetDir:  libsDir,
-		})
-		plans = append(plans, InstallPlan{
-			GroupID:    winner.Group,
-			ArtifactID: winner.Artifact,
-			Version:    winner.Version,
-			Extension:  "jar",
-			TargetDir:  libsDir,
-		})
+	for _, n := range res.Winners {
+		if n.Type == "pom" {
+			continue
+		}
+		if n.Scope == "test" {
+			continue
+		}
+		dest := filepath.Join(libsRoot, n.Group, n.Artifact, n.Version)
+		plans = append(plans, InstallPlan{Node: n, DestDir: dest})
 	}
 	return plans
 }
 
-// InstallResult tracks download statistics for accurate progress reporting.
-type InstallResult struct {
-	Downloaded int
-	Cached     int
-	Errors     []error
+// Install downloads every artifact in the plan in parallel (bounded by
+// concurrency), verifying checksums via the Fetcher, and reports every
+// failure rather than stopping at the first so a single bad artifact
+// doesn't obscure unrelated ones.
+func (r *Resolver) Install(plans []InstallPlan, concurrency int) []error {
+	return r.InstallWithProgress(plans, concurrency, nil)
 }
 
-// InstallWithProgress downloads the planned artifacts with accurate progress tracking.
-// It distinguishes between cache hits (already in ./libs) and actual downloads.
-func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, stepFunc func(detail string)) InstallResult {
-	// Enforce strict rate limiting to avoid Maven Central 429s
-	downloader.SetGlobalPace(500 * time.Millisecond)
-
-	result := InstallResult{}
-	var jobs []downloader.Job
-
-	for _, plan := range plans {
-		plan := plan // capture loop variable for closure
-		job := downloader.Job{
-			Name: fmt.Sprintf("%s:%s:%s (%s)", plan.GroupID, plan.ArtifactID, plan.Version, plan.Extension),
+// InstallWithProgress is Install, additionally invoking onStep(detail) once
+// per completed artifact (success or failure) so callers can drive a live
+// progress line instead of the download phase going silent.
+func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, onStep func(detail string)) []error {
+	jobs := make([]downloader.Job, 0, len(plans))
+	for _, p := range plans {
+		p := p
+		ext := p.Node.Type
+		if ext == "" {
+			ext = "jar"
+		}
+		jobs = append(jobs, downloader.Job{
+			Name: fmt.Sprintf("%s:%s:%s", p.Node.Group, p.Node.Artifact, p.Node.Version),
 			Run: func() error {
-				// 1. CHECK LOCAL CACHE FIRST: Is it already in ./libs?
-				groupPath := filepath.Join(plan.TargetDir, filepath.FromSlash(plan.GroupID))
-				artifactPath := filepath.Join(groupPath, plan.ArtifactID, plan.Version)
-				fileName := fmt.Sprintf("%s-%s.%s", plan.ArtifactID, plan.Version, plan.Extension)
-				localPath := filepath.Join(artifactPath, fileName)
-
-				if _, err := os.Stat(localPath); err == nil {
-					// Already exists in local ./libs - skip download
-					result.Cached++
-					if stepFunc != nil {
-						stepFunc(fmt.Sprintf("%s:%s:%s (cached)", plan.GroupID, plan.ArtifactID, plan.Version))
-					}
-					return nil
-				}
-
-				// 2. TRUE OFFLINE-FIRST FETCH: Use the robust fetcher (handles global cache, offline flag, checksums)
-				var data []byte
-				var err error
-
-				if plan.Extension == "pom" {
-					data, err = r.fetcher.FetchPOM(plan.GroupID, plan.ArtifactID, plan.Version)
-				} else {
-					data, err = r.fetcher.FetchArtifact(plan.GroupID, plan.ArtifactID, plan.Version, "", plan.Extension)
-				}
-
+				data, err := r.fetcher.FetchArtifact(p.Node.Group, p.Node.Artifact, p.Node.Version, p.Node.Classifier, ext)
 				if err != nil {
-					return fmt.Errorf("failed to fetch %s:%s:%s: %w", plan.GroupID, plan.ArtifactID, plan.Version, err)
+					if onStep != nil {
+						onStep(p.Node.Coordinate.String() + " (failed)")
+					}
+					return err
 				}
-
-				// 3. SAVE TO LOCAL PROJECT DIR: The fetcher caches globally, but KPM also 
-				// maintains a local ./libs directory for the project as per the README.
-				if err := os.MkdirAll(artifactPath, 0755); err != nil {
-					return fmt.Errorf("failed to create local dir %s: %w", artifactPath, err)
+				if err := os.MkdirAll(p.DestDir, 0o755); err != nil {
+					return err
 				}
-
-				if err := os.WriteFile(localPath, data, 0644); err != nil {
-					return fmt.Errorf("failed to write to local %s: %w", localPath, err)
+				name := p.Node.Artifact + "-" + p.Node.Version
+				if p.Node.Classifier != "" {
+					name += "-" + p.Node.Classifier
 				}
-
-				// 4. Track actual download
-				result.Downloaded++
-
-				// 5. Report progress
-				if stepFunc != nil {
-					stepFunc(fmt.Sprintf("%s:%s:%s", plan.GroupID, plan.ArtifactID, plan.Version))
+				dest := filepath.Join(p.DestDir, name+"."+ext)
+				
+				// CRITICAL FIX: ATOMIC WRITE. Write to temp file first, then rename.
+				// This prevents corrupt partial downloads from being left on disk
+				// and mistaken for valid cache entries or build artifacts.
+				tmpDest := dest + ".tmp"
+				if werr := os.WriteFile(tmpDest, data, 0o644); werr != nil {
+					return werr
+				}
+				if werr := os.Rename(tmpDest, dest); werr != nil {
+					return werr
+				}
+				
+				if onStep != nil {
+					onStep(p.Node.Coordinate.String())
 				}
 				return nil
 			},
-		}
-		jobs = append(jobs, job)
+		})
 	}
-
-	// Execute sequentially (concurrency=1) to respect the global downloader pace limiter
-	jobErrs := downloader.RunPool(jobs, 1)
-
-	for _, err := range jobErrs {
-		result.Errors = append(result.Errors, err)
-	}
-
-	return result
+	return downloader.RunPool(jobs, concurrency)
 }
