@@ -14,6 +14,8 @@ type Resource struct {
 	GPath   *string `json:"gpath,omitempty"`
 	URL     *string `json:"url,omitempty"`
 	Hash    string  `json:"hash"`
+	Scope   *string  `json:"scope,omitempty"`
+	Parent  *string  `json:"parent,omitempty"`
 }
 
 type ResourceFile struct {
@@ -21,24 +23,22 @@ type ResourceFile struct {
 	Resources []Resource `json:"resources"`
 }
 
-
-
 type PomDependency struct {
-	XMLName      xml.Name     `xml:"project"`
-	ModelVersion string       `xml:"modelVersion"`
-	GroupID      string       `xml:"groupId"`
-	ArtifactID   string       `xml:"artifactId"`
-	Packaging    string       `xml:"packaging"`
-	Description  string       `xml:"description"`
-	URL          string       `xml:"url"`
-	Version      string       `xml:"version"`
-	Name         string       `xml:"name"`
+	XMLName      xml.Name `xml:"project"`
+	ModelVersion string   `xml:"modelVersion"`
+	GroupID      string   `xml:"groupId"`
+	ArtifactID   string   `xml:"artifactId"`
+	Packaging    string   `xml:"packaging"`
+	Description  string   `xml:"description"`
+	URL          string   `xml:"url"`
+	Version      string   `xml:"version"`
+	Name         string   `xml:"name"`
 
-	Licenses     []License     `xml:"licenses>license"`
-	Organization Organization  `xml:"organization"`
-	SCM          SCM           `xml:"scm"`
-	Developers   []Developer   `xml:"developers>developer"`
-	Dependencies []Dependency  `xml:"dependencies>dependency"`
+	Licenses     []License    `xml:"licenses>license"`
+	Organization Organization `xml:"organization"`
+	SCM          SCM          `xml:"scm"`
+	Developers   []Developer  `xml:"developers>developer"`
+	Dependencies []Dependency `xml:"dependencies>dependency"`
 }
 
 type License struct {
@@ -66,8 +66,8 @@ type Developer struct {
 }
 
 type Dependency struct {
-	GroupID   string `xml:"groupId"`
+	GroupID    string `xml:"groupId"`
 	ArtifactID string `xml:"artifactId"`
-	Version   string `xml:"version"`
-	Scope     string `xml:"scope,omitempty"`
+	Version    string `xml:"version"`
+	Scope      string `xml:"scope,omitempty"`
 }

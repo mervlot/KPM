@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "entries": {
+    "io.kvision:kvision-common-annotations::jar@8.2.0": {
+      "group": "io.kvision",
+      "artifact": "kvision-common-annotations",
+      "version": "8.2.0",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "io.kvision:kvision-common-remote::jar@8.2.0": {
+      "group": "io.kvision",
+      "artifact": "kvision-common-remote",
+      "version": "8.2.0",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "io.kvision:kvision-common-types::jar@8.2.0": {
+      "group": "io.kvision",
+      "artifact": "kvision-common-types",
+      "version": "8.2.0",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "io.kvision:kvision-server-javalin::jar@8.2.0": {
+      "group": "io.kvision",
+      "artifact": "kvision-server-javalin",
+      "version": "8.2.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 0
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib::jar@2.1.10": {
+      "group": "org.jetbrains.kotlin",
+      "artifact": "kotlin-stdlib",
+      "version": "2.1.10",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm::jar@1.10.1": {
+      "group": "org.jetbrains.kotlinx",
+      "artifact": "kotlinx-coroutines-core-jvm",
+      "version": "1.10.1",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 2
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core::jar@1.10.1": {
+      "group": "org.jetbrains.kotlinx",
+      "artifact": "kotlinx-coroutines-core",
+      "version": "1.10.1",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm::jar@1.8.0": {
+      "group": "org.jetbrains.kotlinx",
+      "artifact": "kotlinx-serialization-core-jvm",
+      "version": "1.8.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 3
+    },
+    "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm::jar@1.8.0": {
+      "group": "org.jetbrains.kotlinx",
+      "artifact": "kotlinx-serialization-json-jvm",
+      "version": "1.8.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 2
+    },
+    "org.jetbrains.kotlinx:kotlinx-serialization-json::jar@1.8.0": {
+      "group": "org.jetbrains.kotlinx",
+      "artifact": "kotlinx-serialization-json",
+      "version": "1.8.0",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.jetbrains:annotations::jar@13.0": {
+      "group": "org.jetbrains",
+      "artifact": "annotations",
+      "version": "13.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 2
+    }
+  }
+}

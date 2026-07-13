@@ -1,15 +1,10 @@
 {
   "name": "KPM",
-  "private": false,
   "version": "0.0.0",
-  "path": "./",
-  "mainDir": "./src",
+  "maindir": "./src",
   "dependencies": {
-    "https://d.f": "url",
     "io.kvision:kvision-server-javalin": "8.2.0",
-    "kotlinx": "0",
-    "kotliny": "0",
-    "org.eclipse.jetty:test-jetty-webapp": "11.0.0.beta1"
+    "org.springframework.boot:spring-boot-starter-web": "3.5.4"
   },
   "scripts": {
     "dev": "node -v",

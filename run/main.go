@@ -35,9 +35,5 @@ func Main(cmd string) {
 		fmt.Println("command  not found")
 	}
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 	// fmt.Println(string(out))
 }

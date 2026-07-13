@@ -2,9 +2,10 @@ package install
 
 import (
 	"fmt"
-	"kpm/types"
 	"os"
 	"path/filepath"
+
+	"kpm/types"
 )
 
 // DownloadUrl downloads a JAR from a URL and updates the resource file
@@ -47,6 +48,8 @@ func DownloadUrl(artifact string, resourcedata *types.ResourceFile, url string, 
 			"",      // GPath
 			url,     // URL
 			"works", // Hash
+			"",
+			"",
 		)
 
 		// Update package.kpm with the installed package
@@ -55,8 +58,6 @@ func DownloadUrl(artifact string, resourcedata *types.ResourceFile, url string, 
 		}
 		return
 	}
-
-
 
 	if update && index >= 0 {
 		UpdateResource(
@@ -88,6 +89,8 @@ func DownloadUrl(artifact string, resourcedata *types.ResourceFile, url string, 
 			"",      // GPath
 			url,     // URL
 			"works", // Hash
+			"",
+			"",
 		)
 	}
 

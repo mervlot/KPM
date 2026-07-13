@@ -9,7 +9,7 @@ import (
 func WriteToJson(data []byte, file string) error {
 	err := os.WriteFile(file, data, 0644)
 	if err != nil {
-		return fmt.Errorf("error writing package.kpm: %w", err)
+		return fmt.Errorf("error writing json: %w", err)
 	}
 	return nil
 }

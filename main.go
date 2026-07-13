@@ -1,95 +1,28 @@
+// This file must live at cmd/kpm/main.go, relative to the same directory
+// that contains go.mod (the module root). That's a Go convention, not a
+// KPM-specific rule: go.mod declares "module kpm", and every other file in
+// this project imports its packages by that path (e.g. "kpm/internal/cli"),
+// so go.mod's location IS what "kpm/..." resolves against. `go build
+// ./cmd/kpm` (or `go run ./cmd/kpm`) must be run from that module root, or
+// anywhere inside it — Go finds go.mod by walking up from your cwd.
+//
+// Why cmd/kpm/ specifically, instead of main.go sitting at the repo root
+// like the old version: it's the standard Go layout for "this repo produces
+// one or more executable binaries." cmd/<binary-name>/main.go is the
+// convention so main.go's own directory name IS the binary name, and so the
+// repo root stays free for exactly one thing per top-level folder
+// (cmd/ for entrypoints, internal/ for everything else). If KPM ever grows
+// a second binary — say a `kpmd` daemon for a remote build cache — it gets
+// its own cmd/kpmd/main.go sitting right next to this one, with zero
+// ambiguity about which main.go is which.
 package main
 
 import (
-	"fmt"
-	"kpm/clean"
-	initialization "kpm/init"
-	"kpm/list"
-	"kpm/ls"
-	install "kpm/package"
-	"kpm/run"
-	"kpm/search"
-	"kpm/sync"
 	"os"
+
+	"kpm/internal/cli"
 )
 
-var version = "0.0.0"
-
 func main() {
-	args := os.Args
-	// root, root_err := types.GetRoot()
-
-	if len(args) < 2 {
-		printHelp()
-		return
-	}
-	// ram.Main()
-	switch args[1] {
-	case "init", "-i", "--init":
-		initialization.Main()
-	case "run":
-		run.Main(args[2])
-	case "list", "-l", "--list":
-		list.Main()
-
-	case "clean", "--clean":
-		clean.Main(os.Args[2:]) // pass args after "clean"
-
-	case "help", "-h", "--help":
-		printHelp()
-	case "version", "-v", "--version":
-		fmt.Println("kpm version:", version)
-	// case "scan", "extract", "-s", "-e":
-	// 	fmt.Println("Scanning project for dependencies...")
-	// 	if root_err != nil {
-	// 		fmt.Println("error encounderd on getting root dir ensure your package.kpm is clean if unsure re run \n `kpm init`")
-	// 	}
-
-	// 	scanner.Scanner(root)
-	
-
-	case "i", "install", "get", "-g":
-		if len(args) > 2 {
-			// Pass all arguments after the command (args[2:] is a slice)
-			install.Main(false, args[2:]...)
-		} else {
-			install.Main(false)
-		}
-
-
-	case "update":
-		if len(args) > 2 {
-			// Pass all arguments after the command (args[2:] is a slice)
-			install.Main(true, args[2:]...)
-		} else {
-			install.Main(true)
-		}
-
-	case "sync":	 
-		sync.Main()
-	case "search", "-f", "--find":
-		search.Main()
-	case "ls":
-		ls.Ls(".")
-	case "usr-dir", "usrd":
-		home, _ := os.UserHomeDir()
-		fmt.Println("User Home Directory:", home)
-	default:
-		fmt.Printf("Unknown command: %s\n\n", args[1])
-		printHelp()
-	}
-}
-
-func printHelp() {
-	fmt.Print(`
-kpm CLI - available commands:
-
-init, -i, --init       Initialize a new KPM project
-scan, extract, -s, -e  Scan project files for dependencies
-version, -v, --version Show the KPM version
-help, -h, --help       Show this help message
-
-Usage:
-kpm <command> [options]
-`)
+	os.Exit(cli.Run(os.Args[1:]))
 }

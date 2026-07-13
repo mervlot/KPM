@@ -7,6 +7,7 @@ require (
 	github.com/scagogogo/sonatype-central-sdk v0.0.0-20250414041711-c778d10ba5f0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	go.etcd.io/bbolt v1.4.3
+	golang.org/x/time v0.15.0
 )
 
 require (

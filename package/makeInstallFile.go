@@ -2,6 +2,7 @@ package install
 
 import (
 	"fmt"
+
 	"kpm/types"
 )
 
@@ -54,6 +55,8 @@ func AppendResource(
 	GPath string,
 	URL string,
 	Hash string,
+	Scope string,
+	Parent string,
 ) {
 	// Create a new ResourceFile
 
@@ -70,6 +73,8 @@ func AppendResource(
 		GPath:   ptr(GPath),
 		URL:     ptr(URL),
 		Hash:    Hash,
+		Scope:   ptr(Scope),
+		Parent:  ptr(Parent), 
 	})
 
 	// Save the ResourceFile
