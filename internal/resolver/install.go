@@ -5,28 +5,54 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"kpm/internal/downloader" // Adjust this import path to match your actual module name
+	"kpm/internal/downloader"
 )
+
+// InstallPlan represents a single artifact to be downloaded.
+type InstallPlan struct {
+	GroupID    string
+	ArtifactID string
+	Version    string
+	Extension  string // "pom" or "jar"
+}
+
+// BuildInstallPlan creates a list of artifacts to download based on the resolution result.
+// This matches the signature expected by internal/cli/command.go
+func BuildInstallPlan(result ResolutionResult, libsDir string) []InstallPlan {
+	var plans []InstallPlan
+	for _, winner := range result.Winners {
+		// We need both POM (for transitive resolution) and JAR (for compilation) for each winner
+		plans = append(plans, InstallPlan{
+			GroupID:    winner.Group,
+			ArtifactID: winner.Artifact,
+			Version:    winner.Version,
+			Extension:  "pom",
+		})
+		plans = append(plans, InstallPlan{
+			GroupID:    winner.Group,
+			ArtifactID: winner.Artifact,
+			Version:    winner.Version,
+			Extension:  "jar",
+		})
+	}
+	return plans
+}
 
 // fetchArtifact is the core "offline-first" function.
 // It checks the local cache first. If missing, it downloads from the network and saves to cache.
-func fetchArtifact(groupID, artifactID, version, ext string, client *downloader.Client) ([]byte, string, error) {
-	// 1. OFFLINE-FIRST: Check local cache first
+func fetchArtifact(groupID, artifactID, version, ext string, client *downloader.Client) (string, error) {
 	groupPath := filepath.Join("libs", filepath.FromSlash(groupID))
 	artifactPath := filepath.Join(groupPath, artifactID, version)
 	fileName := fmt.Sprintf("%s-%s.%s", artifactID, version, ext)
 	localPath := filepath.Join(artifactPath, fileName)
 
-	// Check if file exists and is not empty (size > 0)
+	// 1. OFFLINE-FIRST: Check local cache first
 	info, err := os.Stat(localPath)
 	if err == nil && !info.IsDir() && info.Size() > 0 {
-		// Found in cache! Read from disk. Zero network requests.
-		data, err := os.ReadFile(localPath)
-		if err == nil {
-			return data, localPath, nil
-		}
-		// If reading fails (e.g., corrupted file), fall through to network download
+		// Found in cache! Zero network requests.
+		return localPath, nil
 	}
 
 	// 2. NETWORK FALLBACK: Only hit the network if not cached
@@ -36,75 +62,58 @@ func fetchArtifact(groupID, artifactID, version, ext string, client *downloader.
 
 	data, err := client.Get(url)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to fetch %s: %w", url, err)
+		return "", fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
 
 	// 3. SAVE TO CACHE: Persist to disk for future offline-first use
 	if err := os.MkdirAll(artifactPath, 0755); err != nil {
-		return nil, "", fmt.Errorf("failed to create cache dir %s: %w", artifactPath, err)
+		return "", fmt.Errorf("failed to create cache dir %s: %w", artifactPath, err)
 	}
 
 	if err := os.WriteFile(localPath, data, 0644); err != nil {
-		return nil, "", fmt.Errorf("failed to write to cache %s: %w", localPath, err)
+		return "", fmt.Errorf("failed to write to cache %s: %w", localPath, err)
 	}
 
-	return data, localPath, nil
+	return localPath, nil
 }
 
-// ResolveAndInstall handles the dependency resolution and installation process.
-// (Adapt this to match your existing function signatures)
-func ResolveAndInstall(dependencies []Dependency) error {
-	client := downloader.New()
-	
-	// Optional: Set rate limit explicitly (500ms = 2 req/sec)
+// InstallWithProgress downloads the planned artifacts sequentially with progress tracking.
+// This method attaches to the existing Resolver struct defined elsewhere in your package.
+func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, stepFunc func()) []error {
+	// Enforce strict rate limiting (500ms = 2 requests per second) to avoid Maven Central 429s
 	downloader.SetGlobalPace(500 * time.Millisecond)
 
 	var jobs []downloader.Job
+	var errs []error
 
-	for _, dep := range dependencies {
-		dep := dep // capture loop variable
+	for _, plan := range plans {
+		plan := plan // capture loop variable for closure
 		job := downloader.Job{
-			Name: fmt.Sprintf("%s:%s:%s", dep.GroupID, dep.ArtifactID, dep.Version),
+			Name: fmt.Sprintf("%s:%s:%s (%s)", plan.GroupID, plan.ArtifactID, plan.Version, plan.Extension),
 			Run: func() error {
-				// Fetch POM first (to read transitive dependencies)
-				_, pomPath, err := fetchArtifact(dep.GroupID, dep.ArtifactID, dep.Version, "pom", client)
+				// Note: If your Resolver struct uses a different field name for the downloader 
+				// (e.g., r.downloader instead of r.Client), update "r.Client" below to match.
+				localPath, err := fetchArtifact(plan.GroupID, plan.ArtifactID, plan.Version, plan.Extension, r.Client)
 				if err != nil {
-					return fmt.Errorf("failed to get POM for %s: %w", job.Name, err)
+					return err
 				}
-				fmt.Printf("✅ Resolved POM: %s\n", pomPath)
-
-				// Fetch JAR
-				_, jarPath, err := fetchArtifact(dep.GroupID, dep.ArtifactID, dep.Version, "jar", client)
-				if err != nil {
-					return fmt.Errorf("failed to get JAR for %s: %w", job.Name, err)
+				if stepFunc != nil {
+					stepFunc()
 				}
-				fmt.Printf("✅ Installed JAR: %s\n", jarPath)
-
 				return nil
 			},
 		}
 		jobs = append(jobs, job)
 	}
 
-	// Execute sequentially (no goroutines) to respect rate limits
-	fmt.Println("⏳ Installing dependencies sequentially (offline-first enabled)...")
-	errs := downloader.RunPool(jobs, 1) // concurrency param ignored, forces sequential
+	// Execute sequentially (no goroutines) via the updated downloader.RunPool.
+	// The 'concurrency' argument is intentionally ignored here to guarantee 
+	// sequential execution, preventing burst requests that trigger 429s.
+	jobErrs := downloader.RunPool(jobs, 1)
 	
-	if len(errs) > 0 {
-		fmt.Println("✖ Resolution failed:")
-		for _, err := range errs {
-			fmt.Printf("  - %v\n", err)
-		}
-		return fmt.Errorf("installation failed with %d errors", len(errs))
+	for _, err := range jobErrs {
+		errs = append(errs, err)
 	}
 
-	fmt.Println("🎉 All dependencies installed successfully!")
-	return nil
-}
-
-// Dependency represents a parsed dependency from package.kpm
-type Dependency struct {
-	GroupID    string
-	ArtifactID string
-	Version    string
+	return errs
 }
