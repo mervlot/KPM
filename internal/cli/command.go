@@ -78,7 +78,7 @@ func cmdAdd(args []string, offline bool) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstallWithManifest(&testManifest, offline, true); code != 0 {
+	if code := resolveAndInstall(&testManifest, offline, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -121,7 +121,7 @@ func cmdRemove(args []string) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstallWithManifest(&testManifest, false, true); code != 0 {
+	if code := resolveAndInstall(&testManifest, false, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -166,7 +166,7 @@ func cmdUpdate(args []string, offline bool) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstallWithManifest(&testManifest, offline, true); code != 0 {
+	if code := resolveAndInstall(&testManifest, offline, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -182,10 +182,20 @@ func cmdUpdate(args []string, offline bool) int {
 // downloads every dependency. cmdInstall(sync=true) forces a fresh
 // resolution and rewrites the lock file even if manifest looks unchanged.
 func cmdInstall(args []string, offline, forceSync bool) int {
-	return runResolveAndInstall(offline, forceSync)
+	manifest, err := config.Load(config.ManifestFile)
+	if err != nil {
+		return fail(fmt.Errorf("no %s found — run `kpm init` first", config.ManifestFile))
+	}
+	return resolveAndInstall(manifest, offline, forceSync)
 }
 
-func runResolveAndInstallWithManifest(manifest *config.Manifest, offline, forceSync bool) int {
+// resolveAndInstall is the one place that actually builds the
+// resolver/fetcher stack, resolves, installs, and writes the lock file.
+// cmdAdd/cmdRemove/cmdUpdate call it with a scratch copy of the manifest so
+// a failed resolution never touches the real package.kpm (see their "test
+// manifest" pattern below); cmdInstall/cmdBuild call it with the manifest
+// exactly as loaded from disk.
+func resolveAndInstall(manifest *config.Manifest, offline, forceSync bool) int {
 	repos := repository.BuildSet(manifest)
 	c, err := cache.Open()
 	if err != nil {
@@ -193,7 +203,10 @@ func runResolveAndInstallWithManifest(manifest *config.Manifest, offline, forceS
 	}
 	http := downloader.New()
 
-	progress := logger.NewProgress("🔍 resolving", 0)
+	// Constant feedback instead of going silent during network-bound work:
+	// print a live line per resolved coordinate, and another whenever the
+	// downloader is backing off after a 429/5xx rather than just hanging.
+	progress := logger.NewProgress("resolving", 0)
 	resolver.OnResolveStep = progress.Step
 	downloader.OnRetry = progress.Retrying
 
@@ -208,7 +221,7 @@ func runResolveAndInstallWithManifest(manifest *config.Manifest, offline, forceS
 	if err != nil {
 		return fail(err)
 	}
-	logger.FinishActiveProgress(fmt.Sprintf("✔ resolved %d coordinate(s)", len(result.Winners)))
+	logger.FinishActiveProgress(fmt.Sprintf("resolved %d coordinate(s)", len(result.Winners)))
 	for _, w := range result.Warnings {
 		logger.Warn("%s", w)
 	}
@@ -217,62 +230,18 @@ func runResolveAndInstallWithManifest(manifest *config.Manifest, offline, forceS
 	}
 
 	plans := resolver.BuildInstallPlan(result, libsDir)
-	fmt.Printf("Resolved %d artifacts, downloading %d...\n", len(result.Winners), len(plans))
+	fmt.Printf("Downloading %d artifact(s)...\n", len(plans))
 
-	installProgress := logger.NewProgress("⬇ downloading", len(plans))
+	installProgress := logger.NewProgress("downloading", len(plans))
 	downloader.OnRetry = installProgress.Retrying
 	if errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step); len(errs) > 0 {
-		logger.FinishActiveProgress(fmt.Sprintf("✖ %d artifact(s) failed", len(errs)))
+		logger.FinishActiveProgress(fmt.Sprintf("%d artifact(s) failed", len(errs)))
 		for _, e := range errs {
 			logger.Warn("%s", e)
 		}
 		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
 	}
-	logger.FinishActiveProgress(fmt.Sprintf("✔ downloaded %d artifact(s)", len(plans)))
-
-	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
-	if err := lf.Save(lockfile.FileName); err != nil {
-		return fail(err)
-	}
-	fmt.Println("Wrote", lockfile.FileName)
-	return 0
-}
-
-func runResolveAndInstall(offline, forceSync bool) int {
-	manifest, res, fetcher, err := setup(offline)
-	if err != nil {
-		return fail(err)
-	}
-
-	_ = forceSync // kept for CLI symmetry; resolution is always freshly computed today,
-	// matching "sync" semantics — a future revision can short-circuit to the
-	// existing kpm.lock when the manifest hash is unchanged and forceSync is false.
-
-	result, err := res.Resolve(manifest)
-	if err != nil {
-		return fail(err)
-	}
-	logger.FinishActiveProgress(fmt.Sprintf("✔ resolved %d coordinate(s)", len(result.Winners)))
-	for _, w := range result.Warnings {
-		logger.Warn("%s", w)
-	}
-	for _, c := range result.Conflicts {
-		logger.Debug("conflict %s resolved to %s (candidates: %v)", c.Coordinate, c.Chosen, c.Candidates)
-	}
-
-	plans := resolver.BuildInstallPlan(result, libsDir)
-	fmt.Printf("Resolved %d artifacts, downloading %d...\n", len(result.Winners), len(plans))
-
-	installProgress := logger.NewProgress("⬇ downloading", len(plans))
-	downloader.OnRetry = installProgress.Retrying
-	if errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step); len(errs) > 0 {
-		logger.FinishActiveProgress(fmt.Sprintf("✖ %d artifact(s) failed", len(errs)))
-		for _, e := range errs {
-			logger.Warn("%s", e)
-		}
-		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
-	}
-	logger.FinishActiveProgress(fmt.Sprintf("✔ downloaded %d artifact(s)", len(plans)))
+	logger.FinishActiveProgress(fmt.Sprintf("downloaded %d artifact(s)", len(plans)))
 
 	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
 	if err := lf.Save(lockfile.FileName); err != nil {
@@ -283,12 +252,12 @@ func runResolveAndInstall(offline, forceSync bool) int {
 }
 
 func cmdBuild(args []string, offline bool) int {
-	if code := runResolveAndInstall(offline, false); code != 0 {
-		return code
-	}
 	manifest, err := config.Load(config.ManifestFile)
 	if err != nil {
-		return fail(err)
+		return fail(fmt.Errorf("no %s found — run `kpm init` first", config.ManifestFile))
+	}
+	if code := resolveAndInstall(manifest, offline, false); code != 0 {
+		return code
 	}
 	script, ok := manifest.Scripts["build"]
 	if !ok {

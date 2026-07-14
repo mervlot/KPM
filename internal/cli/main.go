@@ -3,8 +3,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"kpm/internal/cache"
@@ -30,7 +32,7 @@ func Run(args []string) int {
 		logger.Verbose = true
 	}
 	if popFlag(&args, "--slow") {
-		downloader.SetGlobalPace(2500 * time.Millisecond) // ~0.4 req/s
+		downloader.SetRateLimit(1, 2500*time.Millisecond) // 1 request per 2.5s, hard cap
 	}
 
 	cmd := args[0]
@@ -147,7 +149,7 @@ func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetche
 	// Constant feedback instead of going silent during network-bound work:
 	// print a live line per resolved coordinate, and another whenever the
 	// downloader is backing off after a 429/5xx rather than just hanging.
-	progress := logger.NewProgress("🔍 resolving", 0)
+	progress := logger.NewProgress("resolving", 0)
 	resolver.OnResolveStep = progress.Step
 	downloader.OnRetry = progress.Retrying
 
@@ -157,6 +159,32 @@ func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetche
 }
 
 func diagnosticFor(err error) logger.Diagnostic {
+	var notFound *resolver.NotFoundInAnyRepoError
+	if errors.As(err, &notFound) {
+		return logger.Diagnostic{
+			Title:  fmt.Sprintf("%s not found", capitalize(notFound.Kind)),
+			Detail: notFound.Error(),
+			Fixes: []string{
+				"Check the group/artifact name and version at https://search.maven.org",
+				"If this is a private/internal library, make sure its repository is listed in package.kpm",
+				"Version strings are case- and character-sensitive — e.g. \"3.2.3\" vs \"3.2.3.RELEASE\" are different artifacts",
+			},
+		}
+	}
+
+	var noConn *resolver.NoConnectionError
+	if errors.As(err, &noConn) {
+		return logger.Diagnostic{
+			Title:  "No internet connection",
+			Detail: fmt.Sprintf("couldn't reach the repository while fetching %s", noConn.Coordinate),
+			Fixes: []string{
+				"Check that you're connected to the internet",
+				"If you're behind a VPN/proxy/firewall, make sure it allows access to repo1.maven.org",
+				"Already downloaded this before? Try `kpm install --offline` to use what's cached locally",
+			},
+		}
+	}
+
 	msg := err.Error()
 	switch {
 	case contains(msg, "circular dependency"):
@@ -194,6 +222,13 @@ func diagnosticFor(err error) logger.Diagnostic {
 	default:
 		return logger.Diagnostic{Title: "Resolution failed", Detail: msg}
 	}
+}
+
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func contains(s, sub string) bool {

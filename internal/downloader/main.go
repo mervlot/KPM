@@ -16,47 +16,67 @@ import (
 // can print live feedback instead of going silent while backing off.
 var OnRetry func(url string, attempt, maxAttempts int, wait time.Duration, reason error)
 
-// globalPace enforces a minimum spacing between the START of any two
-// outgoing requests, across the whole process — regardless of how many
-// goroutines are involved. This matters because Maven Central throttles on
-// aggregate request RATE over time, not on concurrency: even a single
-// goroutine firing requests back-to-back as fast as the network allows can
-// (and, as reported, does) trip a 429. Backoff-after-failure alone isn't
-// enough; the fix is to never send fast enough to get throttled in the
-// first place. Default: one request in flight every 700ms (~1.4 req/s).
-// This was raised from an initial 350ms after real-world testing still hit
-// 429s at that rate — Central's actual tolerance is unpublished and can
-// vary by time of day/network, so this errs slow rather than re-tuning by
-// guesswork. Combined with skipping checksum sidecar requests for POMs
-// (see resolver/fetch.go), this cuts both the rate AND the raw request
-// count for the resolve phase, which is where the 429s were happening.
-//
-// Package-level and mutex-guarded (not per-Client) so the resolve phase
-// (sequential) and the install phase (worker pool) share the same budget —
-// otherwise pacing each independently would still let the two phases
-// combine into a burst.
-var globalPace = &pacer{minInterval: 700 * time.Millisecond}
+// globalLimit is a hard sliding-window rate limiter shared by every
+// goroutine and every phase (sequential resolve, concurrent install pool
+// alike): no more than maxPerWin requests may go out in any rolling
+// `window`. This is deliberately a hard cap, not just an average spacing —
+// a fixed-interval pacer still lets a burst of retries or concurrent
+// goroutines land within the same window as long as each individual gap is
+// respected; a sliding window actually refuses the (N+1)th request until
+// the window has room. Default: at most 3 requests per 2-second window
+// (~1.5 req/s sustained) — conservative because this host has been
+// observed 429'ing even under a fixed 700ms pace.
+var globalLimit = newRateLimiter(3, 2*time.Second)
 
-type pacer struct {
-	mu          sync.Mutex
-	minInterval time.Duration
-	last        time.Time
+type rateLimiter struct {
+	mu         sync.Mutex
+	maxPerWin  int
+	window     time.Duration
+	timestamps []time.Time // start times of requests currently inside the window
 }
 
-func (p *pacer) wait() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	now := time.Now()
-	if elapsed := now.Sub(p.last); elapsed < p.minInterval {
-		time.Sleep(p.minInterval - elapsed)
+func newRateLimiter(maxPerWin int, window time.Duration) *rateLimiter {
+	return &rateLimiter{maxPerWin: maxPerWin, window: window}
+}
+
+// wait blocks until issuing another request would not exceed maxPerWin
+// requests in the trailing `window`, then records this request's timestamp.
+func (r *rateLimiter) wait() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for {
+		now := time.Now()
+		cutoff := now.Add(-r.window)
+
+		kept := r.timestamps[:0]
+		for _, t := range r.timestamps {
+			if t.After(cutoff) {
+				kept = append(kept, t)
+			}
+		}
+		r.timestamps = kept
+
+		if len(r.timestamps) < r.maxPerWin {
+			r.timestamps = append(r.timestamps, now)
+			return
+		}
+
+		// Window is full: sleep until the oldest entry ages out, then re-check
+		// (another goroutine may have taken the freed slot in the meantime).
+		sleepFor := r.timestamps[0].Add(r.window).Sub(now)
+		r.mu.Unlock()
+		if sleepFor > 0 {
+			time.Sleep(sleepFor)
+		}
+		r.mu.Lock()
 	}
-	p.last = time.Now()
 }
 
-// SetGlobalPace overrides the minimum spacing between requests process-wide
-// (e.g. the CLI can slow this down further with a --slow flag, or speed it
-// up for a trusted private repository that isn't Maven Central).
-func SetGlobalPace(d time.Duration) { globalPace.minInterval = d }
+// SetRateLimit reconfigures the global request budget process-wide (used by
+// `kpm --slow`, or for a trusted private repository that can take more load).
+func SetRateLimit(maxPerWin int, window time.Duration) {
+	globalLimit = newRateLimiter(maxPerWin, window)
+}
 
 type Client struct {
 	http       *http.Client
@@ -74,10 +94,12 @@ func New() *Client {
 
 // Get fetches a URL's body with exponential-backoff-plus-jitter retries on
 // transient failures (network errors, 5xx, 429), and — before every attempt,
-// success or retry alike — waits on the global pacer so requests never fire
-// faster than globalPace.minInterval apart. 4xx other than 429 fails fast
-// since retrying won't help (e.g. 404 = artifact genuinely doesn't exist
-// there).
+// success or retry alike — blocks on the global sliding-window rate limiter
+// so the total number of requests in flight anywhere in the process never
+// exceeds the configured budget. 4xx other than 429 fails fast since
+// retrying won't help (e.g. 404 = artifact genuinely doesn't exist there —
+// see resolver.NotFoundInAnyRepoError for how that gets turned into a
+// human-readable message upstream).
 func (c *Client) Get(url string) ([]byte, error) {
 	return c.GetAuth(url, "", "")
 }
@@ -93,7 +115,7 @@ func (c *Client) GetAuth(url, username, password string) ([]byte, error) {
 			time.Sleep(wait)
 		}
 
-		globalPace.wait() // pace EVERY attempt, not just the first
+		globalLimit.wait() // hard cap on EVERY attempt, not just the first
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
