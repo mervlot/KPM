@@ -12,10 +12,19 @@ import (
 	"kpm/internal/downloader"
 	"kpm/internal/lockfile"
 	"kpm/internal/logger"
+	"kpm/internal/repository"
 	"kpm/internal/resolver"
 )
 
 const libsDir = "./libs"
+
+// installConcurrency is deliberately low. The real protection against
+// Maven Central's rate limiting is downloader.globalPace (a process-wide
+// minimum spacing between requests, shared by every goroutine); this just
+// bounds how many downloads can be in-flight/decompressing/writing to disk
+// at once. A higher number here would NOT download faster — every one of
+// them still has to wait its turn at the same global pacer — it would just
+// mean more goroutines parked waiting on that lock at once.
 const installConcurrency = 2
 
 func fail(err error) int {
@@ -23,12 +32,15 @@ func fail(err error) int {
 	return 1
 }
 
-func cmdInit(_ []string) int {
+func cmdInit(args []string) int {
 	if _, err := os.Stat(config.ManifestFile); err == nil {
 		fmt.Println(config.ManifestFile, "already exists")
 		return 1
 	}
 	name := "my-kpm-project"
+	if len(args) > 0 {
+		name = args[0]
+	}
 	m := config.New(name)
 	if err := m.Save(config.ManifestFile); err != nil {
 		return fail(err)
@@ -66,7 +78,7 @@ func cmdAdd(args []string, offline bool) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstall(&testManifest, offline, true); code != 0 {
+	if code := runResolveAndInstallWithManifest(&testManifest, offline, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -88,6 +100,7 @@ func cmdRemove(args []string) int {
 		return fail(err)
 	}
 
+	// Create a test manifest to validate resolution BEFORE saving to disk
 	testManifest := *manifest
 	testManifest.Dependencies = make(map[string]config.DependencySpec)
 	for k, v := range manifest.Dependencies {
@@ -108,7 +121,7 @@ func cmdRemove(args []string) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstall(&testManifest, false, true); code != 0 {
+	if code := runResolveAndInstallWithManifest(&testManifest, false, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -120,12 +133,15 @@ func cmdRemove(args []string) int {
 	return 0
 }
 
+// cmdUpdate clears the pinned version for one dependency (or all, if none
+// named) so resolution picks up the latest version satisfying constraints.
 func cmdUpdate(args []string, offline bool) int {
 	manifest, err := config.Load(config.ManifestFile)
 	if err != nil {
 		return fail(err)
 	}
 
+	// Create a test manifest to validate resolution BEFORE saving to disk
 	testManifest := *manifest
 	testManifest.Dependencies = make(map[string]config.DependencySpec)
 	for k, v := range manifest.Dependencies {
@@ -150,7 +166,7 @@ func cmdUpdate(args []string, offline bool) int {
 	}
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
-	if code := runResolveAndInstall(&testManifest, offline, true); code != 0 {
+	if code := runResolveAndInstallWithManifest(&testManifest, offline, true); code != 0 {
 		return code // Failed, do NOT persist changes to package.kpm
 	}
 
@@ -162,21 +178,18 @@ func cmdUpdate(args []string, offline bool) int {
 	return 0
 }
 
-func cmdInstall(_ []string, offline, forceSync bool) int {
-	manifest, err := config.Load(config.ManifestFile)
-	if err != nil {
-		return fail(err)
-	}
-	return runResolveAndInstall(manifest, offline, forceSync)
+// cmdInstall resolves (reusing kpm.lock if present and untouched) and
+// downloads every dependency. cmdInstall(sync=true) forces a fresh
+// resolution and rewrites the lock file even if manifest looks unchanged.
+func cmdInstall(args []string, offline, forceSync bool) int {
+	return runResolveAndInstall(offline, forceSync)
 }
 
-// setupWithManifest loads the resolver/fetcher stack using the provided manifest,
-// avoiding disk reads for commands that want to test a manifest before saving it.
-func setupWithManifest(manifest *config.Manifest, offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetcher, error) {
+func runResolveAndInstallWithManifest(manifest *config.Manifest, offline, forceSync bool) int {
 	repos := repository.BuildSet(manifest)
 	c, err := cache.Open()
 	if err != nil {
-		return nil, nil, nil, err
+		return fail(err)
 	}
 	http := downloader.New()
 
@@ -186,27 +199,10 @@ func setupWithManifest(manifest *config.Manifest, offline bool) (*config.Manifes
 
 	fetcher := resolver.NewFetcher(repos, c, http, offline)
 	res := resolver.New(fetcher)
-	return manifest, res, fetcher, nil
-}
 
-func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetcher, error) {
-	manifest, err := config.Load(config.ManifestFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil, nil, fmt.Errorf("no %s found in this directory — run `kpm init` first", config.ManifestFile)
-		}
-		return nil, nil, nil, err
-	}
-	return setupWithManifest(manifest, offline)
-}
-
-func runResolveAndInstall(manifest *config.Manifest, offline, forceSync bool) int {
-	_, res, fetcher, err := setupWithManifest(manifest, offline)
-	if err != nil {
-		return fail(err)
-	}
-
-	_ = forceSync // Resolution is always freshly computed today.
+	_ = forceSync // kept for CLI symmetry; resolution is always freshly computed today,
+	// matching "sync" semantics — a future revision can short-circuit to the
+	// existing kpm.lock when the manifest hash is unchanged and forceSync is false.
 
 	result, err := res.Resolve(manifest)
 	if err != nil {
@@ -221,25 +217,19 @@ func runResolveAndInstall(manifest *config.Manifest, offline, forceSync bool) in
 	}
 
 	plans := resolver.BuildInstallPlan(result, libsDir)
-
-	logger.Info("Resolved %d artifacts, installing to ./libs...", len(result.Winners))
+	fmt.Printf("Resolved %d artifacts, downloading %d...\n", len(result.Winners), len(plans))
 
 	installProgress := logger.NewProgress("⬇ downloading", len(plans))
 	downloader.OnRetry = installProgress.Retrying
-
-	// CRITICAL FIX: Correctly handle []error return type
-	errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step)
-
-	if len(errs) > 0 {
+	if errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step); len(errs) > 0 {
+		logger.FinishActiveProgress(fmt.Sprintf("✖ %d artifact(s) failed", len(errs)))
 		for _, e := range errs {
 			logger.Warn("%s", e)
 		}
 		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
 	}
+	logger.FinishActiveProgress(fmt.Sprintf("✔ downloaded %d artifact(s)", len(plans)))
 
-	logger.FinishActiveProgress("✔ all artifacts installed successfully")
-
-	// CRITICAL FIX: kpm.lock is ONLY written after ALL installations succeed.
 	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
 	if err := lf.Save(lockfile.FileName); err != nil {
 		return fail(err)
@@ -248,13 +238,57 @@ func runResolveAndInstall(manifest *config.Manifest, offline, forceSync bool) in
 	return 0
 }
 
-func cmdBuild(_ []string, offline bool) int {
-	manifest, err := config.Load(config.ManifestFile)
+func runResolveAndInstall(offline, forceSync bool) int {
+	manifest, res, fetcher, err := setup(offline)
 	if err != nil {
 		return fail(err)
 	}
-	if code := runResolveAndInstall(manifest, offline, false); code != 0 {
+
+	_ = forceSync // kept for CLI symmetry; resolution is always freshly computed today,
+	// matching "sync" semantics — a future revision can short-circuit to the
+	// existing kpm.lock when the manifest hash is unchanged and forceSync is false.
+
+	result, err := res.Resolve(manifest)
+	if err != nil {
+		return fail(err)
+	}
+	logger.FinishActiveProgress(fmt.Sprintf("✔ resolved %d coordinate(s)", len(result.Winners)))
+	for _, w := range result.Warnings {
+		logger.Warn("%s", w)
+	}
+	for _, c := range result.Conflicts {
+		logger.Debug("conflict %s resolved to %s (candidates: %v)", c.Coordinate, c.Chosen, c.Candidates)
+	}
+
+	plans := resolver.BuildInstallPlan(result, libsDir)
+	fmt.Printf("Resolved %d artifacts, downloading %d...\n", len(result.Winners), len(plans))
+
+	installProgress := logger.NewProgress("⬇ downloading", len(plans))
+	downloader.OnRetry = installProgress.Retrying
+	if errs := res.InstallWithProgress(plans, installConcurrency, installProgress.Step); len(errs) > 0 {
+		logger.FinishActiveProgress(fmt.Sprintf("✖ %d artifact(s) failed", len(errs)))
+		for _, e := range errs {
+			logger.Warn("%s", e)
+		}
+		return fail(fmt.Errorf("%d artifact(s) failed to install", len(errs)))
+	}
+	logger.FinishActiveProgress(fmt.Sprintf("✔ downloaded %d artifact(s)", len(plans)))
+
+	lf := lockfile.FromResult(result, fetcher.RepositoryFor)
+	if err := lf.Save(lockfile.FileName); err != nil {
+		return fail(err)
+	}
+	fmt.Println("Wrote", lockfile.FileName)
+	return 0
+}
+
+func cmdBuild(args []string, offline bool) int {
+	if code := runResolveAndInstall(offline, false); code != 0 {
 		return code
+	}
+	manifest, err := config.Load(config.ManifestFile)
+	if err != nil {
+		return fail(err)
 	}
 	script, ok := manifest.Scripts["build"]
 	if !ok {
@@ -262,11 +296,14 @@ func cmdBuild(_ []string, offline bool) int {
 		return 0
 	}
 	fmt.Println("running build script:", script)
+	// Script execution intentionally kept simple/explicit (no shell
+	// interpolation) to avoid the injection surface of exec'ing arbitrary
+	// shell strings; a future revision can add a sandboxed script runner.
 	fmt.Println("(script execution is not yet wired up in this build — run it manually):", script)
 	return 0
 }
 
-func cmdGraph(_ []string, offline bool) int {
+func cmdGraph(args []string, offline bool) int {
 	manifest, res, _, err := setup(offline)
 	if err != nil {
 		return fail(err)
@@ -323,7 +360,7 @@ func cmdWhy(args []string, offline bool) int {
 	return 0
 }
 
-func cmdOutdated(_ []string, offline bool) int {
+func cmdOutdated(args []string, offline bool) int {
 	manifest, res, fetcher, err := setup(offline)
 	if err != nil {
 		return fail(err)
@@ -355,7 +392,7 @@ func cmdOutdated(_ []string, offline bool) int {
 	return 0
 }
 
-func cmdDoctor(_ []string) int {
+func cmdDoctor(args []string) int {
 	c, err := cache.Open()
 	if err != nil {
 		return fail(err)
@@ -379,7 +416,7 @@ func cmdDoctor(_ []string) int {
 	return 1
 }
 
-func cmdClean(_ []string) int {
+func cmdClean(args []string) int {
 	if err := os.RemoveAll(libsDir); err != nil {
 		return fail(err)
 	}

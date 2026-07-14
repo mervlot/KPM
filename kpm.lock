@@ -439,7 +439,7 @@
       "version": "23.0.0",
       "type": "",
       "scope": "compile",
-      "repository": "cache",
+      "repository": "central",
       "depth": 2
     },
     "org.slf4j:jul-to-slf4j::jar@2.0.17": {
