@@ -192,9 +192,8 @@ func cmdInstall(args []string, offline, forceSync bool) int {
 // resolveAndInstall is the one place that actually builds the
 // resolver/fetcher stack, resolves, installs, and writes the lock file.
 // cmdAdd/cmdRemove/cmdUpdate call it with a scratch copy of the manifest so
-// a failed resolution never touches the real package.kpm (see their "test
-// manifest" pattern below); cmdInstall/cmdBuild call it with the manifest
-// exactly as loaded from disk.
+// a failed resolution never touches the real package.kpm; cmdInstall/
+// cmdBuild call it with the manifest exactly as loaded from disk.
 func resolveAndInstall(manifest *config.Manifest, offline, forceSync bool) int {
 	repos := repository.BuildSet(manifest)
 	c, err := cache.Open()

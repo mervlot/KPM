@@ -177,7 +177,6 @@ func isConnectivityError(err error) bool {
 		"i/o timeout",
 		"dial tcp",
 		"connection reset by peer",
-		"tlshandshake",
 		"certificate",
 	} {
 		if strings.Contains(msg, marker) {

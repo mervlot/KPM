@@ -3,12 +3,7 @@
   "version": "0.0.0",
   "maindir": "./src",
   "dependencies": {
-    "io.ktor:ktor-server-core-jvm": "3.2.3",
     "io.kvision:kvision-server-javalin": "8.2.0",
-    "org.springframework.boot:spring-boot-starter-web": "3.5.4"
-  },
-  "scripts": {
-    "dev": "node -v",
-    "run": "python --version"
+    "kotliny": "0"
   }
 }

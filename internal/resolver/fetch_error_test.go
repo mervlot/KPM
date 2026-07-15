@@ -8,7 +8,7 @@ import (
 func TestNotFoundInAnyRepoErrorMessage(t *testing.T) {
 	e := &NotFoundInAnyRepoError{Coordinate: "org.example:foo:1.0", Kind: "dependency", Ext: "pom", RepoCount: 2}
 	msg := e.Error()
-	if !contains(msg, "not found") || !contains(msg, "org.example:foo:1.0") {
+	if !containsStr(msg, "not found") || !containsStr(msg, "org.example:foo:1.0") {
 		t.Errorf("unexpected message: %q", msg)
 	}
 }
@@ -36,7 +36,7 @@ func TestIsConnectivityError(t *testing.T) {
 	}
 }
 
-func contains(s, sub string) bool {
+func containsStr(s, sub string) bool {
 	for i := 0; i+len(sub) <= len(s); i++ {
 		if s[i:i+len(sub)] == sub {
 			return true

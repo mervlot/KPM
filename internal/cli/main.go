@@ -15,6 +15,7 @@ import (
 	"kpm/internal/logger"
 	"kpm/internal/repository"
 	"kpm/internal/resolver"
+	"kpm/internal/run/executor"
 )
 
 const Version = "0.2.0"
@@ -64,6 +65,8 @@ func Run(args []string) int {
 		return cmdWhy(rest, offline)
 	case "outdated":
 		return cmdOutdated(rest, offline)
+	case "run":
+		return cmdRun(rest)
 	case "doctor":
 		return cmdDoctor(rest)
 	case "clean":
@@ -108,6 +111,10 @@ Project:
   sync                      Re-resolve ignoring kpm.lock and rewrite it
   update [group:artifact]   Update one or all dependencies to latest allowed versions
   build                     Resolve, install, and run the "build" script
+
+Tasks (kpm.run):
+  run <task>                Run a task defined in kpm.run
+  run                       List available tasks
 
 Inspection:
   graph                     Print the resolved dependency tree
@@ -159,6 +166,28 @@ func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetche
 }
 
 func diagnosticFor(err error) logger.Diagnostic {
+	var rec *executor.RecursionError
+	if errors.As(err, &rec) {
+		return logger.Diagnostic{
+			Title:  "Recursive task in kpm.run",
+			Detail: err.Error(),
+			Fixes: []string{
+				"Check the task chain named in the error and remove the cycle",
+			},
+		}
+	}
+	var unkBuiltin *executor.UnknownBuiltinError
+	if errors.As(err, &unkBuiltin) {
+		return logger.Diagnostic{
+			Title:  "Unknown built-in command in kpm.run",
+			Detail: err.Error(),
+			Fixes: []string{
+				"Check the spelling of the \"@\" line",
+				"Run `kpm help` to see which built-ins this version of kpm supports",
+			},
+		}
+	}
+
 	var notFound *resolver.NotFoundInAnyRepoError
 	if errors.As(err, &notFound) {
 		return logger.Diagnostic{

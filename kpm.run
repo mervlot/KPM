@@ -1,0 +1,124 @@
+# ============================================
+# KPM Task Runner Demo
+# Exercises nearly every feature.
+# ============================================
+
+# -----------------------------
+# Simple shell command
+# -----------------------------
+hello:
+    echo Hello from KPM!
+
+# -----------------------------
+# Built-in only
+# -----------------------------
+doctor:
+    @doctor
+
+# -----------------------------
+# Dependency install
+# -----------------------------
+install:
+    @install
+
+# -----------------------------
+# Update dependencies
+# -----------------------------
+update:
+    @update
+
+# -----------------------------
+# Show outdated packages
+# -----------------------------
+outdated:
+    @outdated
+
+# -----------------------------
+# Sync lockfile
+# -----------------------------
+sync:
+    @sync
+
+# -----------------------------
+# Explain dependency
+# -----------------------------
+why-kotlin:
+    @why org.jetbrains.kotlin:kotlin-stdlib
+
+# -----------------------------
+# Chain multiple tasks
+# -----------------------------
+check:
+    doctor
+    install
+    outdated
+
+# -----------------------------
+# Nested task execution
+# -----------------------------
+refresh:
+    clean
+    sync
+
+# -----------------------------
+# Multiple shell commands
+# -----------------------------
+shell-demo:
+    echo First command
+    echo Second command
+    echo Third command
+
+# -----------------------------
+# Git example
+# -----------------------------
+git:
+    git status
+
+# -----------------------------
+# Go example
+# -----------------------------
+go:
+    go version
+    go env
+
+# -----------------------------
+# Java example
+# -----------------------------
+java:
+    java -version
+
+# -----------------------------
+# Node example
+# -----------------------------
+node:
+    node -v
+    npm -v
+
+# -----------------------------
+# Windows example
+# -----------------------------
+windows:
+    dir
+
+# -----------------------------
+# Linux example
+# -----------------------------
+linux:
+    ls -la
+
+# -----------------------------
+# Clean
+# -----------------------------
+clean:
+    echo Cleaning build output...
+
+# -----------------------------
+# Full workflow
+# -----------------------------
+full:
+    hello
+    doctor
+    install
+    why-kotlin
+    shell-demo
+    clean

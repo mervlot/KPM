@@ -98,8 +98,8 @@ func New() *Client {
 // so the total number of requests in flight anywhere in the process never
 // exceeds the configured budget. 4xx other than 429 fails fast since
 // retrying won't help (e.g. 404 = artifact genuinely doesn't exist there —
-// see resolver.NotFoundInAnyRepoError for how that gets turned into a
-// human-readable message upstream).
+// see resolver.NotFoundInAnyRepoError for how that becomes a human-readable
+// message upstream).
 func (c *Client) Get(url string) ([]byte, error) {
 	return c.GetAuth(url, "", "")
 }
