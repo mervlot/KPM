@@ -86,15 +86,19 @@ func builtinRegistry() map[string]executor.BuiltinFunc {
 		return nil
 	}
 	return map[string]executor.BuiltinFunc{
-		"resolve":     func(args []string) error { return toErr(cmdGraph(nil, false)) }, // resolves + prints the tree; no separate resolve-only command exists yet
-		"install":     func(args []string) error { return toErr(cmdInstall(args, false, false)) },
-		"sync":        func(args []string) error { return toErr(cmdInstall(args, false, true)) },
-		"update":      func(args []string) error { return toErr(cmdUpdate(args, false)) },
-		"build":       func(args []string) error { return toErr(cmdBuild(args, false)) },
-		"doctor":      func(args []string) error { return toErr(cmdDoctor(args)) },
-		"clean":       func(args []string) error { return toErr(cmdClean(args)) },
-		"outdated":    func(args []string) error { return toErr(cmdOutdated(args, false)) },
-		"cache-clean": func(args []string) error { return toErr(cmdCache(append([]string{"clean"}, args...))) },
-		"why":         func(args []string) error { return toErr(cmdWhy(args, false)) },
+		"resolve":        func(args []string) error { return toErr(cmdGraph(nil, false)) }, // resolves + prints the tree; no separate resolve-only command exists yet
+		"install":        func(args []string) error { return toErr(cmdInstall(args, false, false)) },
+		"sync":           func(args []string) error { return toErr(cmdInstall(args, false, true)) },
+		"update":         func(args []string) error { return toErr(cmdUpdate(args, false)) },
+		"build":          func(args []string) error { return toErr(cmdBuild(args, false)) },
+		"doctor":         func(args []string) error { return toErr(cmdDoctor(args)) },
+		"clean":          func(args []string) error { return toErr(cmdClean(args)) },
+		"outdated":       func(args []string) error { return toErr(cmdOutdated(args, false)) },
+		"cache-clean":    func(args []string) error { return toErr(cmdCache(append([]string{"clean"}, args...))) },
+		"why":            func(args []string) error { return toErr(cmdWhy(args, false)) },
+		"compile":        func(args []string) error { return toErr(cmdCompile(args, modeAuto)) },
+		"run":            func(args []string) error { return toErr(cmdRunApp(args)) },
+		"compile-java":   func(args []string) error { return toErr(cmdCompile(args, modeJava)) },
+		"compile-kotlin": func(args []string) error { return toErr(cmdCompile(args, modeKotlin)) },
 	}
 }

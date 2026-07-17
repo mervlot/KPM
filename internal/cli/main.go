@@ -67,6 +67,8 @@ func Run(args []string) int {
 		return cmdOutdated(rest, offline)
 	case "run":
 		return cmdRun(rest)
+	case "compile":
+		return cmdCompile(rest, modeAuto)
 	case "doctor":
 		return cmdDoctor(rest)
 	case "clean":
@@ -115,6 +117,14 @@ Project:
 Tasks (kpm.run):
   run <task>                Run a task defined in kpm.run
   run                       List available tasks
+
+Build:
+  compile                   Compile Java/Kotlin sources under src/main to build/classes
+                            (mixed projects: kotlinc first, then javac — see internal/compiler docs)
+
+Run (kpm.run builtin only, not a top-level command):
+  @run <main-class> [args]  Launch a compiled class with build/classes + installed jars on -cp
+                            (does not compile first — pair with @compile in the same task)
 
 Inspection:
   graph                     Print the resolved dependency tree
@@ -166,6 +176,10 @@ func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetche
 }
 
 func diagnosticFor(err error) logger.Diagnostic {
+	if d, ok := diagnosticForCompile(err); ok {
+		return d
+	}
+
 	var rec *executor.RecursionError
 	if errors.As(err, &rec) {
 		return logger.Diagnostic{

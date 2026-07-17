@@ -9,10 +9,29 @@ import (
 	"kpm/internal/graph"
 )
 
-// InstallPlan is one artifact that needs to land on disk under libsDir.
+// InstallPlan is one artifact that needs to land on disk under libsRoot.
 type InstallPlan struct {
-	Node    *graph.Node
-	DestDir string // e.g. "./libs/<group>/<artifact>/<version>/"
+	Node     *graph.Node
+	LibsRoot string // e.g. "./libs" — passed through so ArtifactPath can be recomputed without guessing
+	DestDir  string // e.g. "./libs/<group>/<artifact>/<version>/"
+}
+
+// ArtifactPath computes the deterministic on-disk path an installed
+// artifact lives at under libsRoot: libsRoot/group/artifact/version/
+// artifact-version[-classifier].ext. This is the single source of truth
+// for that layout — both the installer (below) and internal/classpath
+// (which needs to find already-downloaded jars without re-resolving or
+// re-downloading anything) call this instead of each re-deriving the
+// naming convention, which would risk the two silently drifting apart.
+func ArtifactPath(libsRoot, group, artifact, version, classifier, ext string) string {
+	if ext == "" {
+		ext = "jar"
+	}
+	name := artifact + "-" + version
+	if classifier != "" {
+		name += "-" + classifier
+	}
+	return filepath.Join(libsRoot, group, artifact, version, name+"."+ext)
 }
 
 // BuildInstallPlan returns the winning node for every coordinate in the
@@ -28,7 +47,7 @@ func BuildInstallPlan(res *Result, libsRoot string) []InstallPlan {
 			continue
 		}
 		dest := filepath.Join(libsRoot, n.Group, n.Artifact, n.Version)
-		plans = append(plans, InstallPlan{Node: n, DestDir: dest})
+		plans = append(plans, InstallPlan{Node: n, LibsRoot: libsRoot, DestDir: dest})
 	}
 	return plans
 }
@@ -65,12 +84,8 @@ func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, onS
 				if err := os.MkdirAll(p.DestDir, 0o755); err != nil {
 					return err
 				}
-				name := p.Node.Artifact + "-" + p.Node.Version
-				if p.Node.Classifier != "" {
-					name += "-" + p.Node.Classifier
-				}
-				dest := filepath.Join(p.DestDir, name+"."+ext)
-				
+				dest := ArtifactPath(p.LibsRoot, p.Node.Group, p.Node.Artifact, p.Node.Version, p.Node.Classifier, ext)
+
 				// CRITICAL FIX: ATOMIC WRITE. Write to temp file first, then rename.
 				// This prevents corrupt partial downloads from being left on disk
 				// and mistaken for valid cache entries or build artifacts.
@@ -81,7 +96,7 @@ func (r *Resolver) InstallWithProgress(plans []InstallPlan, concurrency int, onS
 				if werr := os.Rename(tmpDest, dest); werr != nil {
 					return werr
 				}
-				
+
 				if onStep != nil {
 					onStep(p.Node.Coordinate.String())
 				}

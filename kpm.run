@@ -122,3 +122,6 @@ full:
     why-kotlin
     shell-demo
     clean
+run:
+    @compile
+    @run com.example.MainKt

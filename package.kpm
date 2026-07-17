@@ -1,9 +1,8 @@
 {
-  "name": "KPM",
-  "version": "0.0.0",
-  "maindir": "./src",
-  "dependencies": {
-    "io.kvision:kvision-server-javalin": "8.2.0",
-    "kotliny": "0"
-  }
+  "name": "my-kpm-project",
+  "group": "com.mervlot",
+  "version": "1.0.0",
+  "sourceDir": "src",
+  "buildDir": "build",
+  "dependencies": {}
 }

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sort"
@@ -41,12 +42,39 @@ func cmdInit(args []string) int {
 	if len(args) > 0 {
 		name = args[0]
 	}
+
+	reader := bufio.NewReader(os.Stdin)
+	group := promptDefault(reader, "group", "com.example")
+	version := promptDefault(reader, "version", "1.0.0")
+	sourceDir := promptDefault(reader, "sourceDir", "src")
+	buildDir := promptDefault(reader, "buildDir", "build")
+
 	m := config.New(name)
+	m.Group = group
+	m.Version = version
+	m.SourceDir = sourceDir
+	m.BuildDir = buildDir
+
 	if err := m.Save(config.ManifestFile); err != nil {
 		return fail(err)
 	}
 	fmt.Println("Created", config.ManifestFile)
 	return 0
+}
+
+// promptDefault asks "label [default]: " and returns the trimmed input, or
+// def if the person just hits enter (or stdin isn't interactive/errors).
+func promptDefault(reader *bufio.Reader, label, def string) string {
+	fmt.Printf("%s [%s]: ", label, def)
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return def
+	}
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return def
+	}
+	return line
 }
 
 // cmdAdd adds one or more "group:artifact[:version]" dependencies to

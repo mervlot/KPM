@@ -36,10 +36,19 @@ type Repository struct {
 
 // Manifest is the full package.kpm document.
 type Manifest struct {
-	Name         string                    `json:"name"`
-	Version      string                    `json:"version"`
-	Private      bool                      `json:"private,omitempty"`
-	MainDir      string                    `json:"maindir,omitempty"`
+	Name    string `json:"name"`
+	Group   string `json:"group,omitempty"` // Maven groupId this project publishes as (future @jar/publish use)
+	Version string `json:"version"`
+	Private bool   `json:"private,omitempty"`
+
+	Java   int    `json:"java,omitempty"`   // target/expected JDK major version, e.g. 21 (informational for now — not yet enforced by the compiler)
+	Kotlin string `json:"kotlin,omitempty"` // expected Kotlin language version, e.g. "2.2.0" (informational for now — not yet enforced)
+
+	MainClass string `json:"mainClass,omitempty"` // default class for the "@run" builtin when no argument is given
+
+	SourceDir string `json:"sourceDir,omitempty"` // project source root, e.g. "src" (src/main/java, src/main/kotlin live under here)
+	BuildDir  string `json:"buildDir,omitempty"`  // build output root, e.g. "build" (build/classes, build/libs, etc. live under here)
+
 	Dependencies map[string]DependencySpec `json:"dependencies"`
 	DevDeps      map[string]DependencySpec `json:"devDependencies,omitempty"`
 	BOMs         []string                  `json:"boms,omitempty"` // "group:artifact:version" imported BOMs
@@ -52,7 +61,8 @@ func New(name string) *Manifest {
 	return &Manifest{
 		Name:         name,
 		Version:      "0.1.0",
-		MainDir:      "./src",
+		SourceDir:    "src",
+		BuildDir:     "build",
 		Dependencies: map[string]DependencySpec{},
 		Scripts:      map[string]string{},
 	}
