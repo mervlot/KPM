@@ -383,7 +383,7 @@ For details, see [LICENCE.md](LICENCE.md).
 
 ## ⚠️ Status
 
-**Current Version**: 0.0.0
+**Current Version**: 1.0.0
 
 This is an active development project. Features and APIs may change significantly between versions.
 
