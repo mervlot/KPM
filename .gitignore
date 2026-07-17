@@ -41,5 +41,5 @@ temp/
 
 # Dependencies
 go.sum
-x
-xx.go
+
+build
