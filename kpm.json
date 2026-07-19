@@ -1,0 +1,14 @@
+{
+  "name": "my-kpm-project",
+  "group": "com.mervlot",
+  "version": "1.0.0",
+  "sourceDir": "src",
+  "buildDir": "build",
+  "testDir": "src/test",
+  "dependencies": {
+    "org.jetbrains.kotlin:kotlin-test": "2.4.0",
+    "org.jetbrains.kotlin:kotlin-test-junit5": "2.4.0",
+    "org.junit.jupiter:junit-jupiter-api": "6.0.0",
+    "org.junit.jupiter:junit-jupiter-engine": "6.0.0"
+  }
+}

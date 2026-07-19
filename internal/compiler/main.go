@@ -103,6 +103,9 @@ func (e *EmptySourceError) Error() string {
 func LocateJavaRuntime() (string, error) {
 	return locate("java", "JAVA_HOME")
 }
+func LocateJar() (string, error) {
+	return locate("jar", "JAVA_HOME")
+}
 
 // locate implements the shared PATH -> $HOME/bin/<name> search order used
 // by both JavaCompiler and KotlinCompiler. On macOS, if homeVar is

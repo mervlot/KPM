@@ -1,95 +1,41 @@
 {
   "schemaVersion": 1,
   "entries": {
-    "io.kvision:kvision-common-annotations::jar@8.2.0": {
-      "group": "io.kvision",
-      "artifact": "kvision-common-annotations",
-      "version": "8.2.0",
+    "org.apiguardian:apiguardian-api::jar@1.1.2": {
+      "group": "org.apiguardian",
+      "artifact": "apiguardian-api",
+      "version": "1.1.2",
       "type": "",
-      "scope": "runtime",
+      "scope": "compile",
       "repository": "cache",
       "depth": 1
     },
-    "io.kvision:kvision-common-remote::jar@8.2.0": {
-      "group": "io.kvision",
-      "artifact": "kvision-common-remote",
-      "version": "8.2.0",
+    "org.jetbrains.kotlin:kotlin-stdlib::jar@2.4.0": {
+      "group": "org.jetbrains.kotlin",
+      "artifact": "kotlin-stdlib",
+      "version": "2.4.0",
       "type": "",
-      "scope": "runtime",
+      "scope": "compile",
       "repository": "cache",
       "depth": 1
     },
-    "io.kvision:kvision-common-types::jar@8.2.0": {
-      "group": "io.kvision",
-      "artifact": "kvision-common-types",
-      "version": "8.2.0",
-      "type": "",
-      "scope": "runtime",
-      "repository": "cache",
-      "depth": 1
-    },
-    "io.kvision:kvision-server-javalin::jar@8.2.0": {
-      "group": "io.kvision",
-      "artifact": "kvision-server-javalin",
-      "version": "8.2.0",
+    "org.jetbrains.kotlin:kotlin-test-junit5::jar@2.4.0": {
+      "group": "org.jetbrains.kotlin",
+      "artifact": "kotlin-test-junit5",
+      "version": "2.4.0",
       "type": "",
       "scope": "compile",
       "repository": "cache",
       "depth": 0
     },
-    "org.jetbrains.kotlin:kotlin-stdlib::jar@2.1.10": {
+    "org.jetbrains.kotlin:kotlin-test::jar@2.4.0": {
       "group": "org.jetbrains.kotlin",
-      "artifact": "kotlin-stdlib",
-      "version": "2.1.10",
-      "type": "",
-      "scope": "runtime",
-      "repository": "cache",
-      "depth": 1
-    },
-    "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm::jar@1.10.1": {
-      "group": "org.jetbrains.kotlinx",
-      "artifact": "kotlinx-coroutines-core-jvm",
-      "version": "1.10.1",
+      "artifact": "kotlin-test",
+      "version": "2.4.0",
       "type": "",
       "scope": "compile",
       "repository": "cache",
-      "depth": 2
-    },
-    "org.jetbrains.kotlinx:kotlinx-coroutines-core::jar@1.10.1": {
-      "group": "org.jetbrains.kotlinx",
-      "artifact": "kotlinx-coroutines-core",
-      "version": "1.10.1",
-      "type": "",
-      "scope": "runtime",
-      "repository": "cache",
-      "depth": 1
-    },
-    "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm::jar@1.8.0": {
-      "group": "org.jetbrains.kotlinx",
-      "artifact": "kotlinx-serialization-core-jvm",
-      "version": "1.8.0",
-      "type": "",
-      "scope": "compile",
-      "repository": "cache",
-      "depth": 3
-    },
-    "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm::jar@1.8.0": {
-      "group": "org.jetbrains.kotlinx",
-      "artifact": "kotlinx-serialization-json-jvm",
-      "version": "1.8.0",
-      "type": "",
-      "scope": "compile",
-      "repository": "cache",
-      "depth": 2
-    },
-    "org.jetbrains.kotlinx:kotlinx-serialization-json::jar@1.8.0": {
-      "group": "org.jetbrains.kotlinx",
-      "artifact": "kotlinx-serialization-json",
-      "version": "1.8.0",
-      "type": "",
-      "scope": "runtime",
-      "repository": "cache",
-      "depth": 1
+      "depth": 0
     },
     "org.jetbrains:annotations::jar@13.0": {
       "group": "org.jetbrains",
@@ -99,6 +45,69 @@
       "scope": "compile",
       "repository": "cache",
       "depth": 2
+    },
+    "org.jspecify:jspecify::jar@1.0.0": {
+      "group": "org.jspecify",
+      "artifact": "jspecify",
+      "version": "1.0.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.junit.jupiter:junit-jupiter-api::jar@6.0.0": {
+      "group": "org.junit.jupiter",
+      "artifact": "junit-jupiter-api",
+      "version": "6.0.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 0
+    },
+    "org.junit.jupiter:junit-jupiter-engine::jar@6.0.0": {
+      "group": "org.junit.jupiter",
+      "artifact": "junit-jupiter-engine",
+      "version": "6.0.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 0
+    },
+    "org.junit.platform:junit-platform-commons::jar@6.0.0": {
+      "group": "org.junit.platform",
+      "artifact": "junit-platform-commons",
+      "version": "6.0.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.junit.platform:junit-platform-engine::jar@6.0.0": {
+      "group": "org.junit.platform",
+      "artifact": "junit-platform-engine",
+      "version": "6.0.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.junit.platform:junit-platform-launcher::jar@1.10.1": {
+      "group": "org.junit.platform",
+      "artifact": "junit-platform-launcher",
+      "version": "1.10.1",
+      "type": "",
+      "scope": "runtime",
+      "repository": "cache",
+      "depth": 1
+    },
+    "org.opentest4j:opentest4j::jar@1.3.0": {
+      "group": "org.opentest4j",
+      "artifact": "opentest4j",
+      "version": "1.3.0",
+      "type": "",
+      "scope": "compile",
+      "repository": "cache",
+      "depth": 1
     }
   }
 }

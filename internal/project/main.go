@@ -1,6 +1,6 @@
 // Package project defines the shared project model every build-related
 // subsystem (classpath, compiler, and later @jar/@run/@test/publishing)
-// builds from, so none of them re-read package.kpm or re-scan the
+// builds from, so none of them re-read kpm.json or re-scan the
 // filesystem independently. Load it once per command, pass the *Project
 // around.
 //
@@ -32,7 +32,7 @@ import (
 type Project struct {
 	Name    string
 	Version string
-	// SourceDir is package.kpm's "sourceDir" (e.g. "src"); JavaSourceDir/
+	// SourceDir is kpm.json's "sourceDir" (e.g. "src"); JavaSourceDir/
 	// KotlinSourceDir below are resolved as SourceDir/main/java and
 	// SourceDir/main/kotlin.
 	SourceDir string
@@ -72,7 +72,7 @@ type Project struct {
 
 const defaultInstalledJarsDir = "./libs"
 
-// Load reads package.kpm and discovers which of the two supported source
+// Load reads kpm.json and discovers which of the two supported source
 // roots (src/main/java, src/main/kotlin) actually exist, plus resources.
 // It does not require any source to exist — an empty project is valid
 // (the compiler layer decides whether "no source" is an error for what

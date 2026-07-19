@@ -1,8 +1,0 @@
-{
-  "name": "my-kpm-project",
-  "group": "com.mervlot",
-  "version": "1.0.0",
-  "sourceDir": "src",
-  "buildDir": "build",
-  "dependencies": {}
-}

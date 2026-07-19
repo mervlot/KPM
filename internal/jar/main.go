@@ -1,0 +1,4 @@
+package jar
+
+func Jar() {
+}

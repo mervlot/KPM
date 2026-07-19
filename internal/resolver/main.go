@@ -214,7 +214,7 @@ func (r *Resolver) childRequirements(pom *parser.POM, parentReq requirement, par
 }
 
 // rootManagement merges the root project's own dependencyManagement with
-// every BOM listed in package.kpm's "boms" array (document order = priority).
+// every BOM listed in kpm.json's "boms" array (document order = priority).
 func (r *Resolver) rootManagement(manifest *config.Manifest) (*bom.ManagementSet, error) {
 	ms := bom.NewManagementSet()
 	for _, coord := range manifest.BOMs {
@@ -246,6 +246,7 @@ func (r *Resolver) rootManagement(manifest *config.Manifest) (*bom.ManagementSet
 func (r *Resolver) pomFetchFn() parser.PomFetcher {
 	return func(g, a, v string) ([]byte, error) { return r.fetcher.FetchPOM(g, a, v) }
 }
+
 func (r *Resolver) bomFetchFn() bom.PomFetcher {
 	return func(g, a, v string) ([]byte, error) { return r.fetcher.FetchPOM(g, a, v) }
 }

@@ -36,7 +36,7 @@ func cmdRunApp(args []string) int {
 		mainClass = manifest.MainClass
 	}
 	if mainClass == "" {
-		return fail(fmt.Errorf("usage: @run <main-class> [program args...] (or set \"mainClass\" in package.kpm to omit it)"))
+		return fail(fmt.Errorf("usage: @run <main-class> [program args...] (or set \"mainClass\" in kpm.json to omit it)"))
 	}
 
 	proj, err := project.Load(config.ManifestFile)

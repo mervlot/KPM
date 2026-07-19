@@ -1,4 +1,4 @@
-// Package config defines KPM's project manifest ("package.kpm") — the
+// Package config defines KPM's project manifest ("kpm.json") — the
 // human-edited file analogous to package.json/Cargo.toml/pom.xml's
 // top-level project block.
 package config
@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const ManifestFile = "package.kpm"
+const ManifestFile = "kpm.json"
 
 // DependencySpec is one entry under "dependencies". A bare string is
 // shorthand for an exact version; the object form allows scope, classifier,
@@ -28,13 +28,13 @@ type Repository struct {
 	ID       string `json:"id"`
 	URL      string `json:"url"`
 	Username string `json:"username,omitempty"`
-	// Password is never stored in plaintext in package.kpm; it's resolved at
+	// Password is never stored in plaintext in kpm.json; it's resolved at
 	// runtime from KPM_REPO_<ID>_PASSWORD or the OS credential store.
 	Priority int  `json:"priority,omitempty"` // lower = tried first; Maven Central defaults to lowest priority
 	Mirrors  bool `json:"mirrorOf,omitempty"`
 }
 
-// Manifest is the full package.kpm document.
+// Manifest is the full kpm.json document.
 type Manifest struct {
 	Name    string `json:"name"`
 	Group   string `json:"group,omitempty"` // Maven groupId this project publishes as (future @jar/publish use)
@@ -48,7 +48,7 @@ type Manifest struct {
 
 	SourceDir string `json:"sourceDir,omitempty"` // project source root, e.g. "src" (src/main/java, src/main/kotlin live under here)
 	BuildDir  string `json:"buildDir,omitempty"`  // build output root, e.g. "build" (build/classes, build/libs, etc. live under here)
-
+	TestDir string `json:"testDir,omitempty"` // test source root, e.g. "src/test"
 	Dependencies map[string]DependencySpec `json:"dependencies"`
 	DevDeps      map[string]DependencySpec `json:"devDependencies,omitempty"`
 	BOMs         []string                  `json:"boms,omitempty"` // "group:artifact:version" imported BOMs
@@ -63,6 +63,7 @@ func New(name string) *Manifest {
 		Version:      "0.1.0",
 		SourceDir:    "src",
 		BuildDir:     "build",
+		TestDir:      "src/test",
 		Dependencies: map[string]DependencySpec{},
 		Scripts:      map[string]string{},
 	}

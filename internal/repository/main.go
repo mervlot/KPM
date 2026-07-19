@@ -46,11 +46,11 @@ type Set struct {
 }
 
 // BuildSet assembles the effective repository list: Maven Central plus any
-// custom repositories from package.kpm, sorted by priority, with mirrors
+// custom repositories from kpm.json, sorted by priority, with mirrors
 // substituted in for the repositories they declare mirrorOf for.
 // Credentials are resolved from KPM_REPO_<ID>_USERNAME / _PASSWORD env vars
 // (uppercased, non-alnum replaced with '_') rather than stored in
-// package.kpm, so secrets never end up in version control.
+// kpm.json, so secrets never end up in version control.
 func BuildSet(manifest *config.Manifest) *Set {
 	repos := []Repository{{ID: "central", URL: CentralURL, Priority: 1000}}
 

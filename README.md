@@ -55,6 +55,7 @@ kpm init
 ```
 
 This interactive command will:
+
 - Ask if you want to scan existing dependencies
 - Prompt for project name (defaults to folder name)
 - Set the main source directory (default: `./src`)
@@ -62,7 +63,8 @@ This interactive command will:
 - Set initial version (default: `0.0.0`)
 
 This generates:
-- `package.kpm` - Project configuration file
+
+- `kpm.json` - Project configuration file
 - `.kls_classpath` - Kotlin Language Server classpath
 
 ### 2. Scan for Dependencies
@@ -80,7 +82,7 @@ Scans all Kotlin (`.kt`) files in your project and extracts import statements to
 ### 3. Install Dependencies
 
 ```bash
-# Install packages from package.kpm
+# Install packages from kpm.json
 kpm install
 
 # Install a specific Maven package
@@ -118,7 +120,7 @@ Search Maven Central Repository for available packages.
 
 ### 6. Run Scripts
 
-Define scripts in `package.kpm`:
+Define scripts in `kpm.json`:
 
 ```json
 {
@@ -138,23 +140,23 @@ kpm run build
 
 ## 📖 Commands
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `init` | `-i`, `--init` | Initialize a new KPM project |
-| `install` | `i`, `get`, `-g` | Install packages from package.kpm or specified packages |
-| `update` | — | Update existing packages |
-| `scan` | `extract`, `-s`, `-e` | Scan project for dependencies |
-| `list` | `-l`, `--list` | List installed packages in table format |
-| `search` | `-f`, `--find` | Search Maven Central Repository |
-| `run` | — | Execute scripts defined in package.kpm |
-| `clean` | `--clean` | Clean project files |
-| `sync` | — | Synchronize project resources |
-| `version` | `-v`, `--version` | Display KPM version |
-| `help` | `-h`, `--help` | Show help message |
+| Command   | Aliases               | Description                                          |
+| --------- | --------------------- | ---------------------------------------------------- |
+| `init`    | `-i`, `--init`        | Initialize a new KPM project                         |
+| `install` | `i`, `get`, `-g`      | Install packages from kpm.json or specified packages |
+| `update`  | —                     | Update existing packages                             |
+| `scan`    | `extract`, `-s`, `-e` | Scan project for dependencies                        |
+| `list`    | `-l`, `--list`        | List installed packages in table format              |
+| `search`  | `-f`, `--find`        | Search Maven Central Repository                      |
+| `run`     | —                     | Execute scripts defined in kpm.json                  |
+| `clean`   | `--clean`             | Clean project files                                  |
+| `sync`    | —                     | Synchronize project resources                        |
+| `version` | `-v`, `--version`     | Display KPM version                                  |
+| `help`    | `-h`, `--help`        | Show help message                                    |
 
 ## 📁 Configuration Files
 
-### `package.kpm`
+### `kpm.json`
 
 Project manifest file containing metadata and dependencies.
 
@@ -177,6 +179,7 @@ Project manifest file containing metadata and dependencies.
 ```
 
 **Fields:**
+
 - `name` - Project name
 - `private` - Whether the project is private
 - `version` - Semantic version (x.y.z format)
@@ -210,6 +213,7 @@ Stores information about downloaded and installed packages.
 ```
 
 **Resource Fields:**
+
 - `group` - Maven group ID
 - `name` - Package name/artifact ID
 - `version` - Package version
@@ -228,7 +232,7 @@ KPM/
 ├── main.go                    # Main entry point and CLI router
 ├── go.mod                     # Go module definition
 ├── go.sum                     # Go dependencies checksums
-├── package.kpm                # Project metadata
+├── kpm.json                # Project metadata
 ├── resource.kpm               # Installed packages manifest
 ├── LICENCE.md                 # Project license (MPEL v1.0)
 ├── README.md                  # This file
@@ -297,6 +301,7 @@ KPM/
 ### Automatic Dependency Discovery
 
 KPM scans your Kotlin source files (`.kt`) to automatically identify import statements and detect dependencies from:
+
 - Maven repositories
 - External URLs
 - Local files
@@ -304,6 +309,7 @@ KPM scans your Kotlin source files (`.kt`) to automatically identify import stat
 ### Maven Central Integration
 
 Seamlessly interact with Maven Central Repository:
+
 - Search for packages
 - Download specific versions
 - Resolve transitive dependencies
@@ -312,6 +318,7 @@ Seamlessly interact with Maven Central Repository:
 ### Language Server Support
 
 Automatic Kotlin Language Server (KLS) configuration:
+
 - Generates `.kls_classpath` on project initialization
 - Maintains classpath for IDE integration
 - Updates classpath when packages are installed
@@ -319,13 +326,15 @@ Automatic Kotlin Language Server (KLS) configuration:
 ### Package Caching
 
 Efficient local caching system:
+
 - Stores downloaded packages in structured `libs/` directory
 - Maintains both local and global paths
 - Enables offline usage of cached packages
 
 ### Script Management
 
-Define and run custom scripts in `package.kpm`:
+Define and run custom scripts in `kpm.json`:
+
 - Build scripts
 - Development server commands
 - Testing utilities
@@ -352,12 +361,14 @@ This project is **source-available** software licensed under a proprietary licen
 Copyright (c) 2025 Mervlot (Ogunmuyiwa Muhammad Mubarak Oluwaseyi). All rights reserved.
 
 **Permitted Uses:**
+
 - Personal, educational, internal, and evaluation purposes
 - Modify the software for private use
 - Submit modifications back to the original repository
 - Redistribute the original, unmodified software with this license intact
 
 **Prohibited:**
+
 - Distribute or share modified versions
 - Create public forks for distribution
 - Offer modified versions as a competing product or service
@@ -376,6 +387,7 @@ See [LICENCE.md](LICENCE.md) for full license terms.
 ## 🤝 Contributing
 
 Contributions are welcome! By submitting modifications, you agree that:
+
 - Mervlot has the right to review, accept, modify, or reject your changes
 - Accepted contributions may be incorporated under the same source-available license
 

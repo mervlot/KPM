@@ -78,7 +78,7 @@ func promptDefault(reader *bufio.Reader, label, def string) string {
 }
 
 // cmdAdd adds one or more "group:artifact[:version]" dependencies to
-// package.kpm and re-resolves the whole project.
+// kpm.json and re-resolves the whole project.
 func cmdAdd(args []string, offline bool) int {
 	if len(args) == 0 {
 		fmt.Println("usage: kpm add <group:artifact[:version]> [more...]")
@@ -107,7 +107,7 @@ func cmdAdd(args []string, offline bool) int {
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
 	if code := resolveAndInstall(&testManifest, offline, true); code != 0 {
-		return code // Failed, do NOT persist changes to package.kpm
+		return code // Failed, do NOT persist changes to kpm.json
 	}
 
 	manifest.Dependencies = testManifest.Dependencies
@@ -150,7 +150,7 @@ func cmdRemove(args []string) int {
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
 	if code := resolveAndInstall(&testManifest, false, true); code != 0 {
-		return code // Failed, do NOT persist changes to package.kpm
+		return code // Failed, do NOT persist changes to kpm.json
 	}
 
 	manifest.Dependencies = testManifest.Dependencies
@@ -195,7 +195,7 @@ func cmdUpdate(args []string, offline bool) int {
 
 	// CRITICAL FIX: Only save the manifest if resolution and installation succeed
 	if code := resolveAndInstall(&testManifest, offline, true); code != 0 {
-		return code // Failed, do NOT persist changes to package.kpm
+		return code // Failed, do NOT persist changes to kpm.json
 	}
 
 	manifest.Dependencies = testManifest.Dependencies
@@ -220,7 +220,7 @@ func cmdInstall(args []string, offline, forceSync bool) int {
 // resolveAndInstall is the one place that actually builds the
 // resolver/fetcher stack, resolves, installs, and writes the lock file.
 // cmdAdd/cmdRemove/cmdUpdate call it with a scratch copy of the manifest so
-// a failed resolution never touches the real package.kpm; cmdInstall/
+// a failed resolution never touches the real kpm.json; cmdInstall/
 // cmdBuild call it with the manifest exactly as loaded from disk.
 func resolveAndInstall(manifest *config.Manifest, offline, forceSync bool) int {
 	repos := repository.BuildSet(manifest)
@@ -288,7 +288,7 @@ func cmdBuild(args []string, offline bool) int {
 	}
 	script, ok := manifest.Scripts["build"]
 	if !ok {
-		fmt.Println("no \"build\" script defined in package.kpm scripts; install completed successfully")
+		fmt.Println("no \"build\" script defined in kpm.json scripts; install completed successfully")
 		return 0
 	}
 	fmt.Println("running build script:", script)

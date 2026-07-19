@@ -43,3 +43,4 @@ temp/
 go.sum
 
 build
+*.jar

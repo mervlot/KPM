@@ -13,7 +13,7 @@ import (
 // scoped).
 func writeManifest(t *testing.T, dir string) string {
 	t.Helper()
-	path := filepath.Join(dir, "package.kpm")
+	path := filepath.Join(dir, "kpm.json")
 	content := `{"name":"demo","version":"0.1.0","maindir":"./src","dependencies":{}}`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)

@@ -26,7 +26,7 @@ func NewInterpolator(pom *POM, extra map[string]string) *Interpolator {
 	props["pom.version"] = pom.Version
 	props["version"] = pom.Version
 
-	// User-supplied overrides (e.g. from package.kpm "properties" block) win.
+	// User-supplied overrides (e.g. from kpm.json "properties" block) win.
 	for k, v := range extra {
 		props[k] = v
 	}

@@ -47,13 +47,13 @@ func Run(args []string) int {
 
 	case "init", "-i", "--init":
 		return cmdInit(rest)
-	case "add", "i", "install-add":
+	case "install", "add", "i":
 		return cmdAdd(rest, offline)
 	case "remove", "rm":
 		return cmdRemove(rest)
 	case "update":
 		return cmdUpdate(rest, offline)
-	case "install", "get", "-g":
+	case "get", "-g":
 		return cmdInstall(rest, offline, false)
 	case "sync":
 		return cmdInstall(rest, offline, true)
@@ -69,6 +69,8 @@ func Run(args []string) int {
 		return cmdRun(rest)
 	case "compile":
 		return cmdCompile(rest, modeAuto)
+	case "jar":
+		return cmdJar()
 	case "doctor":
 		return cmdDoctor(rest)
 	case "clean":
@@ -106,10 +108,10 @@ Usage:
   kpm <command> [options]
 
 Project:
-  init                      Initialize a new package.kpm
+  init                      Initialize a new kpm.json
   add <group:artifact[:version]>   Add a dependency and re-resolve
   remove <group:artifact>   Remove a dependency and re-resolve
-  install                   Resolve + download everything in package.kpm (uses kpm.lock if present)
+  get                   Resolve + download everything in kpm.json (uses kpm.lock if present)
   sync                      Re-resolve ignoring kpm.lock and rewrite it
   update [group:artifact]   Update one or all dependencies to latest allowed versions
   build                     Resolve, install, and run the "build" script
@@ -145,7 +147,7 @@ Flags:
 `)
 }
 
-// setup loads package.kpm and constructs the shared resolver/fetcher stack
+// setup loads kpm.json and constructs the shared resolver/fetcher stack
 // every dependency-aware command needs.
 func setup(offline bool) (*config.Manifest, *resolver.Resolver, *resolver.Fetcher, error) {
 	manifest, err := config.Load(config.ManifestFile)
@@ -209,7 +211,7 @@ func diagnosticFor(err error) logger.Diagnostic {
 			Detail: notFound.Error(),
 			Fixes: []string{
 				"Check the group/artifact name and version at https://search.maven.org",
-				"If this is a private/internal library, make sure its repository is listed in package.kpm",
+				"If this is a private/internal library, make sure its repository is listed in kpm.json",
 				"Version strings are case- and character-sensitive — e.g. \"3.2.3\" vs \"3.2.3.RELEASE\" are different artifacts",
 			},
 		}
@@ -236,7 +238,7 @@ func diagnosticFor(err error) logger.Diagnostic {
 			Detail: msg,
 			Fixes: []string{
 				"Run `kpm graph` to see the full dependency tree and locate the cycle",
-				"Add an <exclusion> for one side of the cycle in package.kpm",
+				"Add an <exclusion> for one side of the cycle in kpm.json",
 			},
 		}
 	case contains(msg, "checksum mismatch"):
@@ -245,7 +247,7 @@ func diagnosticFor(err error) logger.Diagnostic {
 			Detail: msg,
 			Fixes: []string{
 				"Run `kpm cache clean` to remove the corrupted artifact, then retry",
-				"Verify the repository URL in package.kpm is correct and trusted",
+				"Verify the repository URL in kpm.json is correct and trusted",
 			},
 		}
 	case contains(msg, "offline mode"):
@@ -256,7 +258,7 @@ func diagnosticFor(err error) logger.Diagnostic {
 				"Run the command once without --offline to populate the cache",
 			},
 		}
-	case contains(msg, "no %s found") || contains(msg, "package.kpm"):
+	case contains(msg, "no %s found") || contains(msg, "kpm.json"):
 		return logger.Diagnostic{
 			Title:  "No project found",
 			Detail: msg,

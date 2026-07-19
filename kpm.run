@@ -124,4 +124,5 @@ full:
     clean
 run:
     @compile
-    @run com.example.MainKt
+    @jar
+    @run com.mervlot.MainKt

@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 
 	"kpm/internal/classpath"
 	"kpm/internal/compiler"
@@ -10,6 +12,7 @@ import (
 	"kpm/internal/lockfile"
 	"kpm/internal/logger"
 	"kpm/internal/project"
+	"kpm/internal/utils"
 )
 
 // compileMode selects which of Manager's three entry points cmdCompile
@@ -31,6 +34,62 @@ const (
 // internal/cli, internal/project, internal/classpath, and
 // internal/compiler — javac/kotlinc are only ever invoked from inside
 // internal/compiler.
+func cmdCopyJarResources() int {
+	proj, err := project.Load(config.ManifestFile)
+	if err != nil {
+		return fail(err)
+	}
+	src := fmt.Sprintf("%s/main/resources", proj.SourceDir)
+
+	dst := fmt.Sprintf("%s/classes/resources", proj.BuildDir)
+
+	if err := utils.CopyDir(src, dst); err != nil {
+		fmt.Println("Error:", err)
+		return fail(err)
+	}
+	return 0
+}
+
+func cmdJar() int {
+	javaPath, err := compiler.LocateJar()
+	if err != nil {
+		return fail(err)
+	}
+	proj, err := project.Load(config.ManifestFile)
+	if err != nil {
+		return fail(err)
+	}
+
+	var cmdArgs []string = []string{
+		"cf",
+		fmt.Sprintf("./%s/libs/%s.jar", proj.BuildDir, proj.Name),
+		"-C",
+		fmt.Sprintf("./%s/classes", proj.BuildDir), ".",
+	}
+		src := fmt.Sprintf("%s/main/resources", proj.SourceDir)
+	_, err = os.ReadDir(src)
+	if err == nil {
+		cmdCopyJarResources()
+	}
+	
+	cmd := exec.Command(javaPath, cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			// The program ran and exited non-zero on its own — that's the
+			// program's business, not a KPM failure, so just propagate its
+			// exit code without wrapping it in a "resolution failed"-style
+			// diagnostic.
+			return exitErr.ExitCode()
+		}
+		return fail(fmt.Errorf("err %w", err))
+	}
+	return 0
+}
+
 func cmdCompile(args []string, mode compileMode) int {
 	proj, err := project.Load(config.ManifestFile)
 	if err != nil {
@@ -97,7 +156,7 @@ func diagnosticForCompile(err error) (logger.Diagnostic, bool) {
 			Title:  "No source to compile",
 			Detail: emptySrc.Error(),
 			Fixes: []string{
-				"Add .java/.kt files under src/main/java or src/main/kotlin (per package.kpm's \"sourceDir\")",
+				"Add .java/.kt files under src/main/java or src/main/kotlin (per kpm.json's \"sourceDir\")",
 			},
 		}, true
 	}

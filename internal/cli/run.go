@@ -100,5 +100,6 @@ func builtinRegistry() map[string]executor.BuiltinFunc {
 		"run":            func(args []string) error { return toErr(cmdRunApp(args)) },
 		"compile-java":   func(args []string) error { return toErr(cmdCompile(args, modeJava)) },
 		"compile-kotlin": func(args []string) error { return toErr(cmdCompile(args, modeKotlin)) },
+		"jar":            func(args []string) error { return toErr(cmdJar()) },
 	}
 }
