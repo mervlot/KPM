@@ -44,6 +44,10 @@ type Project struct {
 	KotlinSourceDir string
 	ResourceDir     string // src/main/resources, "" if absent
 
+	// Test source roots — "" if the directory doesn't exist.
+	TestJavaSourceDir   string // src/test/java
+	TestKotlinSourceDir string // src/test/kotlin
+
 	// InstalledJarsDir is where `kpm install` already placed dependency
 	// jars ("./libs" today). This is a READ-ONLY input to the compiler —
 	// compilation must never trigger a download, so this is the one and
@@ -63,11 +67,12 @@ type Project struct {
 	// be added to config.Manifest later without touching any code that
 	// reads these fields, since it would just change what Load populates
 	// them with.
-	BuildDir     string // ./build
-	ClassesDir   string // ./build/classes — compiled .class output (this milestone's only output)
-	GeneratedDir string // ./build/generated — reserved for future annotation-processor output
-	TmpDir       string // ./build/tmp — reserved for future incremental-compile bookkeeping
-	LibsDir      string // ./build/libs — reserved for future `@jar` output; NOT where dependency jars live (see InstalledJarsDir)
+	BuildDir       string
+	ClassesDir     string // build/classes — main compiled output
+	TestClassesDir string // build/test-classes — test compiled output
+	GeneratedDir   string
+	TmpDir         string
+	LibsDir        string
 }
 
 const defaultInstalledJarsDir = "./libs"
@@ -99,6 +104,7 @@ func Load(manifestPath string) (*Project, error) {
 		InstalledJarsDir: defaultInstalledJarsDir,
 		BuildDir:         buildDir,
 		ClassesDir:       filepath.Join(buildDir, "classes"),
+		TestClassesDir:   filepath.Join(buildDir, "test-classes"),
 		GeneratedDir:     filepath.Join(buildDir, "generated"),
 		TmpDir:           filepath.Join(buildDir, "tmp"),
 		LibsDir:          filepath.Join(buildDir, "libs"),
@@ -115,6 +121,12 @@ func Load(manifestPath string) (*Project, error) {
 	resourceDir := filepath.Join(sourceDir, "main", "resources")
 	if isDir(resourceDir) {
 		p.ResourceDir = resourceDir
+	}
+	if isDir(filepath.Join(sourceDir, "test", "java")) {
+		p.TestJavaSourceDir = filepath.Join(sourceDir, "test", "java")
+	}
+	if isDir(filepath.Join(sourceDir, "test", "kotlin")) {
+		p.TestKotlinSourceDir = filepath.Join(sourceDir, "test", "kotlin")
 	}
 
 	return p, nil
@@ -173,6 +185,21 @@ func (p *Project) HasJavaSources() bool {
 func (p *Project) HasKotlinSources() bool {
 	files, _ := p.KotlinFiles()
 	return len(files) > 0
+}
+
+// TestJavaFiles returns every *.java file under TestJavaSourceDir.
+func (p *Project) TestJavaFiles() ([]string, error) {
+	return findSourceFiles(p.TestJavaSourceDir, ".java")
+}
+
+// TestKotlinFiles returns every *.kt file under TestKotlinSourceDir.
+func (p *Project) TestKotlinFiles() ([]string, error) {
+	return findSourceFiles(p.TestKotlinSourceDir, ".kt")
+}
+
+// EnsureTestBuildDirs creates build/test-classes if it doesn't exist.
+func (p *Project) EnsureTestBuildDirs() error {
+	return os.MkdirAll(p.TestClassesDir, 0o755)
 }
 
 // EnsureBuildDirs creates the full build/ output layout if it doesn't

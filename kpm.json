@@ -10,5 +10,27 @@
     "org.jetbrains.kotlin:kotlin-test-junit5": "2.4.0",
     "org.junit.jupiter:junit-jupiter-api": "6.0.0",
     "org.junit.jupiter:junit-jupiter-engine": "6.0.0"
+  },
+  "devDependencies": {
+    "org.jetbrains.kotlin:kotlin-test": {
+      "version": "2.1.21",
+      "scope": "compile"
+    },
+    "org.jetbrains.kotlin:kotlin-test-junit5": {
+      "version": "2.1.21",
+      "scope": "compile"
+    },
+    "org.junit.jupiter:junit-jupiter-api": {
+      "version": "5.12.2",
+      "scope": "compile"
+    },
+    "org.junit.jupiter:junit-jupiter-engine": {
+      "version": "5.12.2",
+      "scope": "compile"
+    },
+    "org.junit.platform:junit-platform-console-standalone": {
+      "version": "1.12.2",
+      "scope": "compile"
+    }
   }
 }

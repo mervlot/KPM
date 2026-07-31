@@ -50,6 +50,57 @@ func cmdCopyJarResources() int {
 	return 0
 }
 
+// func cmdTest(args []string) int {
+// 	manifest, _, _, err := setup(false)
+// 	if err != nil {
+// 		logger.PrintDiagnostic(diagnosticFor(err))
+// 		return 1
+// 	}
+
+// 	// Compile the test sources.
+// 	if err := compile(manifest.TestDir, "build/classes-test", modeAuto); err != nil {
+// 		logger.PrintDiagnostic(diagnosticFor(err))
+// 		return 1
+// 	}
+
+// 	cp, err := buildClasspath(
+// 		"build/classes",
+// 		"build/classes-test",
+// 	)
+// 	if err != nil {
+// 		logger.PrintDiagnostic(diagnosticFor(err))
+// 		return 1
+// 	}
+
+// 	junitJar, err := findJUnitConsoleJar()
+// 	if err != nil {
+// 		logger.PrintDiagnostic(logger.Diagnostic{
+// 			Title:  "JUnit Console Launcher not found",
+// 			Detail: "Install org.junit.platform:junit-platform-console-standalone",
+// 			Fixes: []string{
+// 				"kpm add org.junit.platform:junit-platform-console-standalone:<version>",
+// 			},
+// 		})
+// 		return 1
+// 	}
+
+// 	cmd := exec.Command(
+// 		"java",
+// 		"-jar", junitJar,
+// 		"--class-path", cp,
+// 		"--scan-class-path",
+// 	)
+
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	cmd.Stdin = os.Stdin
+
+// 	if err := cmd.Run(); err != nil {
+// 		return 1
+// 	}
+
+//		return 0
+//	}
 func cmdJar() int {
 	javaPath, err := compiler.LocateJar()
 	if err != nil {
@@ -66,12 +117,12 @@ func cmdJar() int {
 		"-C",
 		fmt.Sprintf("./%s/classes", proj.BuildDir), ".",
 	}
-		src := fmt.Sprintf("%s/main/resources", proj.SourceDir)
+	src := fmt.Sprintf("%s/main/resources", proj.SourceDir)
 	_, err = os.ReadDir(src)
 	if err == nil {
 		cmdCopyJarResources()
 	}
-	
+
 	cmd := exec.Command(javaPath, cmdArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

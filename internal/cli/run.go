@@ -97,6 +97,7 @@ func builtinRegistry() map[string]executor.BuiltinFunc {
 		"cache-clean":    func(args []string) error { return toErr(cmdCache(append([]string{"clean"}, args...))) },
 		"why":            func(args []string) error { return toErr(cmdWhy(args, false)) },
 		"compile":        func(args []string) error { return toErr(cmdCompile(args, modeAuto)) },
+		"test":           func(args []string) error { return toErr(cmdTest(args, false)) },
 		"run":            func(args []string) error { return toErr(cmdRunApp(args)) },
 		"compile-java":   func(args []string) error { return toErr(cmdCompile(args, modeJava)) },
 		"compile-kotlin": func(args []string) error { return toErr(cmdCompile(args, modeKotlin)) },

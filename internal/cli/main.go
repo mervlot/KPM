@@ -69,6 +69,8 @@ func Run(args []string) int {
 		return cmdRun(rest)
 	case "compile":
 		return cmdCompile(rest, modeAuto)
+	case "test":
+		return cmdTest(rest, offline)
 	case "jar":
 		return cmdJar()
 	case "doctor":
@@ -123,6 +125,8 @@ Tasks (kpm.run):
 Build:
   compile                   Compile Java/Kotlin sources under src/main to build/classes
                             (mixed projects: kotlinc first, then javac — see internal/compiler docs)
+  test init                 Install the default kotlin-test/JUnit jars
+  test                      Check they're installed; prompt to install if not
 
 Run (kpm.run builtin only, not a top-level command):
   @run <main-class> [args]  Launch a compiled class with build/classes + installed jars on -cp
